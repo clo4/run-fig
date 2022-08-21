@@ -1,0 +1,16 @@
+{
+  "tasks": {
+    "update": "bash -c 'shopt -s globstar; deno run -A https://deno.land/x/udd@0.7.5/main.ts **/*.ts'; deno task cache",
+    "cache": "bash -c 'shopt -s globstar; deno cache **/*.ts'"
+  },
+  "fig": {
+    "update": {
+      "description": "Update dependency versions",
+      "icon": "⬆️"
+    },
+    "cache": {
+      "description": "Cache dependencies",
+      "icon": "⬇️"
+    }
+  }
+}

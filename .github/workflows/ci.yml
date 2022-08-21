@@ -1,0 +1,23 @@
+name: CI
+on:
+  push:
+    paths:
+      - "**/*.ts"
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+
+      - name: Print version
+        run: deno --version
+
+      - name: Run tests
+        run: deno test --no-check
+
+      - name: Run tests
+        run: deno check mod.ts testing.ts
