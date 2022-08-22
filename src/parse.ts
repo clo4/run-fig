@@ -414,7 +414,7 @@ export function parse(
       if (!foundOptions.has(name)) {
         throw new ParseError(
           ctx(),
-          `${option.name} requires ${name}, add it to fix this erro`,
+          `${option.name} requires ${name}, add it to fix this error`,
         );
       }
     }
