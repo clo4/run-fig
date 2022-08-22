@@ -1,0 +1,12 @@
+name: Spell-check
+on:
+  push
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Check spelling of file.txt
+        uses: crate-ci/typos@master
