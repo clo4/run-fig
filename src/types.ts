@@ -898,6 +898,22 @@ type GeneratorCache =
     cacheByDirectory?: true;
   };
 
+export type Trigger =
+  | {
+    /** Trigger on every keystroke */
+    on: "change";
+  }
+  | {
+    /** Trigger when a matching string's index is changed */
+    on: "match";
+    string: SingleOrArray<string>;
+  }
+  | {
+    /** Trigger when the token's length hits or passes a given length */
+    on: "threshold";
+    length: number;
+  };
+
 /**
  * Generators create suggestions to be displayed in Fig's autocomplete
  */
@@ -906,12 +922,15 @@ export interface Generator {
   getQueryTerm?: string;
 
   /**
-   * Re-run the generator when this is typed
+   * Defines when the generator logic will be executed
    *
-   * If the trigger is the literal string `"token"` then the generator will
-   * be run on every token.
+   * If it's a string, run the generator every time the last
+   * index of that string in the input changes.
+   *
+   * It can also be a `Fig.Trigger` object, which declaratively
+   * defines when the generator should run.
    */
-  trigger?: string;
+  trigger?: string | Trigger;
 
   /** Use a template  */
   template?: Template;
@@ -926,7 +945,7 @@ export interface Generator {
   scriptTimeout?: number;
 
   /** The function that gets executed when the generator is triggered */
-  custom?: (tokens: string[]) => 
+  custom?: (tokens: string[]) =>
     | (Suggestion | string)[]
     | Promise<(Suggestion | string)[]>;
 
