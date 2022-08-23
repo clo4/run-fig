@@ -279,7 +279,7 @@ export interface Spec extends Omit<Subcommand, "name"> {
  * running the CLI will return a status code of 1.
  *
  * Subcommands can only be invoked if there are no arguments or non-persistent
- * options preceeding it. In the example below, you can use `--unstable` before
+ * options preceding it. In the example below, you can use `--unstable` before
  * `run`, and still invoke the command.
  *
  * @example modelling the `deno run` command

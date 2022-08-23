@@ -121,7 +121,7 @@ export const usage: Action = ({ path, args: [command], error, help }) => {
     .flatMap((cmd) => cmd.name);
 
   if (subcommands && subcommands.length > 0) {
-    error(`Unkown command '${command}'\n\n${
+    error(`Unknown command '${command}'\n\n${
       help({
         description: false,
         didYouMean: {
@@ -133,7 +133,7 @@ export const usage: Action = ({ path, args: [command], error, help }) => {
   } else {
     // This case is possible when there are subcommands but
     // they're all hidden.
-    error(`Unkown command '${command}'\n\n${
+    error(`Unknown command '${command}'\n\n${
       help({
         description: false,
       })
