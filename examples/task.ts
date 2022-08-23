@@ -14,6 +14,7 @@ const spec: Fig.Spec = {
   ],
   requiresSubcommand: true,
   subcommands: [
+    Fig.completion,
     {
       name: "add",
       description: "Add a task",
