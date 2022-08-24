@@ -255,22 +255,40 @@ export function analyze<
     localOptions.has(name) || persistentOptions.has(name);
 
   const getSubcommand = (name: string) => {
+    if (!localSubcommands) {
+      return null;
+    }
+
     if (!matchSubcommandAbbreviation) {
-      return localSubcommands?.find((command) =>
+      return localSubcommands.find((command) =>
         typeof command.name === "string"
           ? command.name === name
           : command.name.includes(name)
       ) ?? null;
     } else {
-      const found = localSubcommands?.filter((command) =>
-        typeof command.name === "string"
+      let found: Subcommand | null = null;
+
+      for (const command of localSubcommands) {
+        const match = typeof command.name === "string"
           ? command.name.startsWith(name)
-          : command.name.some((cmdName) => cmdName.startsWith(name))
-      );
-      if (!found || found.length !== 1) {
-        return null;
+          : command.name.some((cmdName) => cmdName.startsWith(name));
+
+        if (!match) {
+          continue;
+        }
+
+        // If there's a match and there's already a found command, it's not a
+        // unique prefix, so there are no matches. This is an optimization
+        // for commands that may have a lot of subcommands, to exit as soon as
+        // a second match is found.
+        if (found) {
+          return null;
+        }
+
+        found = command;
       }
-      return found[0];
+
+      return found;
     }
   };
 
