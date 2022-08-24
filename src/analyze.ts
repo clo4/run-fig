@@ -16,6 +16,7 @@ interface MinSubcommand<Option extends MinOption> {
     optionArgSeparators?: string | readonly string[];
     flagsArePosixNoncompliant?: boolean;
     optionsMustPrecedeArguments?: boolean;
+    matchSubcommandAbbreviation?: boolean;
   };
 }
 
@@ -243,6 +244,7 @@ export function analyze<
   let separators = ["="];
   let hasFoundArg = false;
   let posixCompliantOptions = true;
+  let matchSubcommandAbbreviation = false;
   let optionsMustPrecedeArguments = false;
   let hasUsedNonPersistentOption = false;
 
@@ -252,12 +254,25 @@ export function analyze<
   const hasOption = (name: string) =>
     localOptions.has(name) || persistentOptions.has(name);
 
-  const getSubcommand = (name: string) =>
-    localSubcommands?.find((command) =>
-      typeof command.name === "string"
-        ? command.name === name
-        : command.name.includes(name)
-    ) ?? null;
+  const getSubcommand = (name: string) => {
+    if (!matchSubcommandAbbreviation) {
+      return localSubcommands?.find((command) =>
+        typeof command.name === "string"
+          ? command.name === name
+          : command.name.includes(name)
+      ) ?? null;
+    } else {
+      const found = localSubcommands?.filter((command) =>
+        typeof command.name === "string"
+          ? command.name.startsWith(name)
+          : command.name.some((cmdName) => cmdName.startsWith(name))
+      );
+      if (!found || found.length !== 1) {
+        return null;
+      }
+      return found[0];
+    }
+  };
 
   // Update state to a new subcommand (without clearing maps).
   // Returns the new "internal state" which is a byproduct of processing
@@ -287,6 +302,10 @@ export function analyze<
       separators = makeArray(
         directives.optionArgSeparators,
       );
+    }
+
+    if (directives?.matchSubcommandAbbreviation) {
+      matchSubcommandAbbreviation = directives.matchSubcommandAbbreviation;
     }
 
     if (directives?.optionsMustPrecedeArguments) {
