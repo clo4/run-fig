@@ -50,7 +50,7 @@ Deno.test("completion: findGenerator", () => {
         },
       ],
     }),
-    gen
+    gen,
   );
   assertThrows(() => {
     findGenerator("o:1,a:1,g:1", {
@@ -65,6 +65,6 @@ Deno.test("completion: findGenerator", () => {
           ],
         },
       ],
-    })
+    });
   });
 });

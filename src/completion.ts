@@ -14,7 +14,7 @@ export const completion: Subcommand = {
       action({ path: [root] }) {
         const text = generateObjectCode(root, { path: [] });
         console.log(`const spec = ${text}; export default spec`);
-      }
+      },
     },
     {
       name: "run-generator",
