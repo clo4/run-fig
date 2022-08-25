@@ -16,6 +16,18 @@ function getNamed<T extends { name: SingleOrArray<string> }>(
   return named.find((obj) => makeArray(obj.name).includes(name)) ?? null;
 }
 
+function getParserDirective<
+  Key extends keyof NonNullable<Subcommand["parserDirectives"]>,
+>(
+  path: readonly Subcommand[],
+  key: Key,
+): NonNullable<Subcommand["parserDirectives"]>[Key] | undefined {
+  return path.findLast((command) =>
+    command.parserDirectives &&
+    key in command.parserDirectives
+  )?.parserDirectives?.[key];
+}
+
 export interface GetHelpOptions {
   /** Include the top-level description? (default: true) */
   description?: boolean;
@@ -113,6 +125,15 @@ export const usage: Action = ({ path, args: [command], error, help }) => {
     return 0;
   }
 
+  if (command === "") {
+    error(`Found an empty string, but expected a command\n\n${
+      help({
+        description: false,
+      })
+    }`);
+    return 1;
+  }
+
   // If this command was invoked with any value for `command`,
   // that's an error because the user was intending to run a
   // subcommand.
@@ -121,6 +142,27 @@ export const usage: Action = ({ path, args: [command], error, help }) => {
     .flatMap((cmd) => cmd.name);
 
   if (subcommands && subcommands.length > 0) {
+    const matchPrefix = getParserDirective(path, "matchSubcommandAbbreviation");
+    if (matchPrefix) {
+      const possible = subcommands.filter((name) => name.startsWith(command));
+
+      // There could be zero matches if the given command name wasn't the prefix
+      // of a subcommand. In this case, show the generic 'unknown' message
+      // instead of the more specific 'ambiguous' message
+      if (possible.length > 0) {
+        error(
+          `Ambiguous command '${command}', could be: ${
+            possible.join(", ")
+          }\n\n${
+            help({
+              description: false,
+            })
+          }`,
+        );
+        return 1;
+      }
+    }
+
     error(`Unknown command '${command}'\n\n${
       help({
         description: false,
@@ -130,15 +172,15 @@ export const usage: Action = ({ path, args: [command], error, help }) => {
         },
       })
     }`);
-  } else {
-    // This case is possible when there are subcommands but
-    // they're all hidden.
-    error(`Unknown command '${command}'\n\n${
-      help({
-        description: false,
-      })
-    }`);
+    return 1;
   }
+  // This case is possible when there are subcommands but
+  // they're all hidden.
+  error(`Unknown command '${command}'\n\n${
+    help({
+      description: false,
+    })
+  }`);
 
   return 1;
 };
