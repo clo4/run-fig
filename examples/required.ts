@@ -9,10 +9,10 @@ const spec: Fig.Spec = {
         {
           name: "--unstable",
           isRequired: true,
-        }
-      ]
-    }
-  ]
-}
+        },
+      ],
+    },
+  ],
+};
 
-Fig.run(spec)
+Fig.run(spec);

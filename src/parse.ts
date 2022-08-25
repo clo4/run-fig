@@ -7,7 +7,7 @@ import type {
   Subcommand,
 } from "./types.ts";
 import { analyze, BaseToken, TokenOption, TokenSubcommand } from "./analyze.ts";
-import { assert, makeArray, setEach, isArray } from "./util.ts";
+import { assert, isArray, makeArray, setEach } from "./util.ts";
 import {
   ErrorContext,
   InvalidOptionArg,
@@ -414,7 +414,7 @@ export function parse(
       if (!foundOptions.has(name)) {
         throw new ParseError(
           ctx(),
-          `${option.name} requires ${name}, add it to fix this erro`,
+          `${option.name} requires ${name}, add it to fix this error`,
         );
       }
     }

@@ -806,7 +806,7 @@ Deno.test({
   fn() {
     const spec: Spec = {
       name: "test",
-      options: [{ name: "--not-peristent" }],
+      options: [{ name: "--not-persistent" }],
       subcommands: [{ name: "subcommand" }],
     };
     // Should fail since the top level command doesn't take an arg

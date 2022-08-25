@@ -279,7 +279,7 @@ export interface Spec extends Omit<Subcommand, "name"> {
  * running the CLI will return a status code of 1.
  *
  * Subcommands can only be invoked if there are no arguments or non-persistent
- * options preceeding it. In the example below, you can use `--unstable` before
+ * options preceding it. In the example below, you can use `--unstable` before
  * `run`, and still invoke the command.
  *
  * @example modelling the `deno run` command
@@ -455,12 +455,6 @@ export interface Subcommand {
      * This is inherited for all subcommands unless overridden.
      */
     optionArgSeparators?: SingleOrArrayOrEmpty<string>;
-
-    /**
-     * Match subcommand names on the shortest unique segment instead of
-     * requiring exact matches
-     */
-    matchShortestUniqueSubcommand?: boolean;
   };
 
   /** Hide this command from any place it may be displayed */
@@ -926,7 +920,7 @@ export interface Generator {
   scriptTimeout?: number;
 
   /** The function that gets executed when the generator is triggered */
-  custom?: (tokens: string[]) => 
+  custom?: (tokens: string[]) =>
     | (Suggestion | string)[]
     | Promise<(Suggestion | string)[]>;
 

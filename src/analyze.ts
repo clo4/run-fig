@@ -48,7 +48,7 @@ export type TokenArgSeparator = BaseToken & {
   kind: "arg-separator";
 };
 
-/** Some text that is guaranteed to belong to the preceeding option (eg. -I%, --config=file.json) */
+/** Some text that is guaranteed to belong to the preceding option (eg. -I%, --config=file.json) */
 export type TokenOptionArg = BaseToken & {
   kind: "option-arg";
   option: string;
