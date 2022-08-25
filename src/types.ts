@@ -920,7 +920,7 @@ export interface Generator {
   scriptTimeout?: number;
 
   /** The function that gets executed when the generator is triggered */
-  custom?: (tokens: string[]) => 
+  custom?: (tokens: string[]) =>
     | (Suggestion | string)[]
     | Promise<(Suggestion | string)[]>;
 
