@@ -140,7 +140,7 @@ const spec: Fig.Spec = {
 Fig includes a test suite you can integrate into your Deno tests.
 
 ```ts
-import Fig, { testSpec } from "https://deno.land/x/fig/testing.ts";
+import Fig, { testSpec } from "https://denopkg.com/SeparateRecords/run-fig/testing.ts";
 import { spec } from "./cli.ts";
 
 Deno.test("CLI spec is valid", testSpec(spec));
