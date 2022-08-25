@@ -1,7 +1,7 @@
 import type { NonEmptyArray } from "./types.ts";
 
 export function isArray<T>(o: T | readonly T[]): o is readonly T[] {
-  return Array.isArray(o)
+  return Array.isArray(o);
 }
 
 /** Convert the value, if any, to an array with 0 or more elements */
