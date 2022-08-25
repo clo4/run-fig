@@ -3,7 +3,7 @@ import type {
   TokenOptionArg,
   TokenUnknownOption,
 } from "./analyze.ts";
-import type { CommandPath, Option } from "./types.ts";
+import type { CommandPath } from "./types.ts";
 
 const repr = JSON.stringify as (str: string) => string;
 
