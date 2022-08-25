@@ -1,7 +1,7 @@
 import { build, emptyDir } from "https://deno.land/x/dnt@0.30.0/mod.ts";
-import { version } from "../mod.ts"
+import { version } from "../mod.ts";
 
-const dist = "./dist"
+const dist = "./dist";
 
 await emptyDir(dist);
 
