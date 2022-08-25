@@ -1,4 +1,4 @@
-name: CI
+name: Test code
 on:
   push:
     paths:
@@ -13,11 +13,8 @@ jobs:
         with:
           deno-version: v1.x
 
-      - name: Print version
-        run: deno --version
-
       - name: Run tests
         run: deno test --no-check
 
-      - name: Run tests
+      - name: Type-check
         run: deno check mod.ts testing.ts
