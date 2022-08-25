@@ -27,4 +27,4 @@ export default Fig;
 // the documentation generator, which doesn't support exported namespaces.
 export * from "./src/mod.ts";
 
-export const version = "0.0.1"
+export const version = "0.0.1";
