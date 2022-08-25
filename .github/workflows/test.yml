@@ -1,10 +1,10 @@
-name: CI
+name: Test code
 on:
   push:
     paths:
       - "**/*.ts"
 jobs:
-  ci:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -13,11 +13,8 @@ jobs:
         with:
           deno-version: v1.x
 
-      - name: Print version
-        run: deno --version
-
       - name: Run tests
         run: deno test --no-check
 
-      - name: Run tests
+      - name: Type-check
         run: deno check mod.ts testing.ts

@@ -455,12 +455,6 @@ export interface Subcommand {
      * This is inherited for all subcommands unless overridden.
      */
     optionArgSeparators?: SingleOrArrayOrEmpty<string>;
-
-    /**
-     * Match subcommand names on the shortest unique segment instead of
-     * requiring exact matches
-     */
-    matchShortestUniqueSubcommand?: boolean;
   };
 
   /** Hide this command from any place it may be displayed */
