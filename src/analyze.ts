@@ -260,35 +260,52 @@ export function analyze<
     }
 
     if (!matchSubcommandAbbreviation) {
+      // Only find exact matches.
       return localSubcommands.find((command) =>
         typeof command.name === "string"
           ? command.name === name
           : command.name.includes(name)
       ) ?? null;
     } else {
-      let found: Subcommand | null = null;
+      // Prefer exact matches, but also find commands with a matching prefix.
+      const matchingPrefixCommands = [];
 
+      // Have to iterate over every command because a literal match should
+      // always take precedence over a partial/prefix match.
+      commands:
       for (const command of localSubcommands) {
-        const match = typeof command.name === "string"
-          ? command.name.startsWith(name)
-          : command.name.some((cmdName) => cmdName.startsWith(name));
-
-        if (!match) {
-          continue;
+        if (typeof command.name === "string") {
+          // Exact matches can short-circuit and return immediately
+          if (command.name === name) {
+            return command;
+          }
+          if (command.name.startsWith(name)) {
+            matchingPrefixCommands.push(command);
+          }
+        } else {
+          // This is the exact same logic as above, but for each name
+          for (const cmdName of command.name) {
+            if (cmdName === name) {
+              return command;
+            }
+            if (cmdName.startsWith(name)) {
+              matchingPrefixCommands.push(command);
+              // If there's a match for one of the names, there's no need to
+              // check the other names. Checking more can result in adding the
+              // same command to the matches again, which would be an error.
+              continue commands;
+            }
+          }
         }
-
-        // If there's a match and there's already a found command, it's not a
-        // unique prefix, so there are no matches. This is an optimization
-        // for commands that may have a lot of subcommands, to exit as soon as
-        // a second match is found.
-        if (found) {
-          return null;
-        }
-
-        found = command;
       }
 
-      return found;
+      // If there are no matches, or more than one match, then the prefix
+      // wasn't unique, so there's no unambiguous subcommand to return.
+      if (matchingPrefixCommands.length !== 1) {
+        return null;
+      }
+
+      return matchingPrefixCommands[0];
     }
   };
 

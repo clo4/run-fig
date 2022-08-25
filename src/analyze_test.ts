@@ -407,6 +407,8 @@ Deno.test({
       subcommands: [
         { name: ["long-name", "name"] },
         { name: "long-time" },
+        { name: ["abc-def", "abc-xyz"] },
+        { name: "abc" },
       ],
     };
     // matches one exactly
@@ -419,6 +421,32 @@ Deno.test({
           9,
           "long-name",
           spec.subcommands![0],
+        ),
+      ],
+    );
+    // Matches one exactly, even when it is the prefix of another command
+    assertEqualsTokens(
+      analyze(["abc"], spec),
+      [
+        $subcommand<Subcommand, Option>(
+          0,
+          0,
+          3,
+          "abc",
+          spec.subcommands![3],
+        ),
+      ],
+    );
+    // Match a command when it has two names that share the same prefix
+    assertEqualsTokens(
+      analyze(["abc-"], spec),
+      [
+        $subcommand<Subcommand, Option>(
+          0,
+          0,
+          4,
+          "abc-",
+          spec.subcommands![2],
         ),
       ],
     );
