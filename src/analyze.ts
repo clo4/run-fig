@@ -16,6 +16,7 @@ interface MinSubcommand<Option extends MinOption> {
     optionArgSeparators?: string | readonly string[];
     flagsArePosixNoncompliant?: boolean;
     optionsMustPrecedeArguments?: boolean;
+    subcommandsMatchUniquePrefix?: boolean;
   };
 }
 
@@ -243,6 +244,7 @@ export function analyze<
   let separators = ["="];
   let hasFoundArg = false;
   let posixCompliantOptions = true;
+  let subcommandsMatchUniquePrefix = false;
   let optionsMustPrecedeArguments = false;
   let hasUsedNonPersistentOption = false;
 
@@ -252,12 +254,60 @@ export function analyze<
   const hasOption = (name: string) =>
     localOptions.has(name) || persistentOptions.has(name);
 
-  const getSubcommand = (name: string) =>
-    localSubcommands?.find((command) =>
-      typeof command.name === "string"
-        ? command.name === name
-        : command.name.includes(name)
-    ) ?? null;
+  const getSubcommand = (name: string) => {
+    if (!localSubcommands) {
+      return null;
+    }
+
+    if (!subcommandsMatchUniquePrefix) {
+      // Only find exact matches.
+      return localSubcommands.find((command) =>
+        typeof command.name === "string"
+          ? command.name === name
+          : command.name.includes(name)
+      ) ?? null;
+    } else {
+      // Prefer exact matches, but also find commands with a matching prefix.
+      const matchingPrefixCommands = [];
+
+      // Have to iterate over every command because a literal match should
+      // always take precedence over a partial/prefix match.
+      commands:
+      for (const command of localSubcommands) {
+        if (typeof command.name === "string") {
+          // Exact matches can short-circuit and return immediately
+          if (command.name === name) {
+            return command;
+          }
+          if (command.name.startsWith(name)) {
+            matchingPrefixCommands.push(command);
+          }
+        } else {
+          // This is the exact same logic as above, but for each name
+          for (const cmdName of command.name) {
+            if (cmdName === name) {
+              return command;
+            }
+            if (cmdName.startsWith(name)) {
+              matchingPrefixCommands.push(command);
+              // If there's a match for one of the names, there's no need to
+              // check the other names. Checking more can result in adding the
+              // same command to the matches again, which would be an error.
+              continue commands;
+            }
+          }
+        }
+      }
+
+      // If there are no matches, or more than one match, then the prefix
+      // wasn't unique, so there's no unambiguous subcommand to return.
+      if (matchingPrefixCommands.length !== 1) {
+        return null;
+      }
+
+      return matchingPrefixCommands[0];
+    }
+  };
 
   // Update state to a new subcommand (without clearing maps).
   // Returns the new "internal state" which is a byproduct of processing
@@ -287,6 +337,10 @@ export function analyze<
       separators = makeArray(
         directives.optionArgSeparators,
       );
+    }
+
+    if (directives?.subcommandsMatchUniquePrefix) {
+      subcommandsMatchUniquePrefix = directives.subcommandsMatchUniquePrefix;
     }
 
     if (directives?.optionsMustPrecedeArguments) {

@@ -13,6 +13,9 @@ const spec: Fig.Spec = {
     Fig.help,
   ],
   requiresSubcommand: true,
+  parserDirectives: {
+    subcommandsMatchUniquePrefix: true,
+  },
   subcommands: [
     {
       name: "add",

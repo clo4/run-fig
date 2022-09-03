@@ -914,3 +914,59 @@ Deno.test("testing: assertOptionNameReferencesExist", () => {
     });
   });
 });
+
+Deno.test("testing: assertPrefixMatchCommandsHaveNoArguments", () => {
+  // Valid specs
+  Fig.assertPrefixMatchCommandsHaveNoArguments({ name: "test" });
+  Fig.assertPrefixMatchCommandsHaveNoArguments({
+    name: "test",
+    parserDirectives: {
+      subcommandsMatchUniquePrefix: true,
+    },
+    subcommands: [
+      { name: "something" },
+      { name: "another" },
+    ],
+  });
+  Fig.assertPrefixMatchCommandsHaveNoArguments({
+    name: "test",
+    parserDirectives: {
+      subcommandsMatchUniquePrefix: true,
+    },
+    args: {},
+  });
+  Fig.assertPrefixMatchCommandsHaveNoArguments({
+    name: "test",
+    parserDirectives: {
+      subcommandsMatchUniquePrefix: true,
+    },
+    subcommands: [{
+      name: "test",
+      args: { name: "args" },
+    }],
+  });
+  // Invalid specs
+  assertThrows(() => {
+    Fig.assertPrefixMatchCommandsHaveNoArguments({
+      name: "test",
+      parserDirectives: {
+        subcommandsMatchUniquePrefix: true,
+      },
+      subcommands: [{
+        name: "test",
+        args: { name: "args" },
+        subcommands: [{ name: "test" }],
+      }],
+    });
+  });
+  assertThrows(() => {
+    Fig.assertPrefixMatchCommandsHaveNoArguments({
+      name: "test",
+      parserDirectives: {
+        subcommandsMatchUniquePrefix: true,
+      },
+      args: { name: "test" },
+      subcommands: [{ name: "test" }],
+    });
+  });
+});

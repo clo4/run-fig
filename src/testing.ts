@@ -10,6 +10,8 @@ import { getMaxArgs, getMinArgs } from "./parse.ts";
 
 const repr = JSON.stringify;
 
+// TODO: one decorators are stable (ts 4.9?), use decorators this file
+
 /**
  * Run a function once for each `args` property in the spec (recursive)
  *
@@ -202,6 +204,7 @@ export function assertLongOptionNamesDoNotStartWithSingleDash(
   spec: Subcommand,
 ): void {
   forEachOptionArray(spec, (options, path) => {
+    // TODO: check if this is correct
     const skip = path
       .map((command) => command.parserDirectives?.flagsArePosixNoncompliant)
       .filter((value) => value !== undefined)
@@ -228,6 +231,7 @@ export function assertOptionNamesStartWithDashes(
   spec: Subcommand,
 ): void {
   forEachOptionArray(spec, (options, path) => {
+    // TODO: check if this is correct
     const skip = path
       .map((command) => command.parserDirectives?.flagsArePosixNoncompliant)
       .filter((value) => value !== undefined)
@@ -283,6 +287,7 @@ export function assertNothingIsNamedDashDash(
 export function assertOptionArgSeparatorsHaveCharacters(
   spec: Subcommand,
 ): void {
+  // FIXME: `subcommands` isn't an array
   forEachSubcommand(spec, (subcommands, path) => {
     for (const [index, subcommand] of makeArray(subcommands).entries()) {
       const separators = makeArray(
@@ -306,6 +311,7 @@ export function assertPlusMinusOptionsTakeOneArg(
   spec: Subcommand,
 ): void {
   forEachOptionArray(spec, (options, path) => {
+    // TODO: check if this is correct
     const skip = path
       .map((command) => command.parserDirectives?.flagsArePosixNoncompliant)
       .filter((value) => value !== undefined)
@@ -345,6 +351,7 @@ export function assertNamesHaveNoExtraWhitespace(
       }
     }
   });
+  // FIXME: `subcommands` isn't an array
   forEachSubcommand(spec, (subcommands, path) => {
     for (const [index, subcommand] of makeArray(subcommands).entries()) {
       for (const name of makeArray(subcommand.name)) {
@@ -385,6 +392,7 @@ export function assertEverythingHasDescription(
       );
     }
   });
+  // FIXME: `subcommands` isn't an array
   forEachSubcommand(spec, (subcommands, path) => {
     for (const [index, subcommand] of makeArray(subcommands).entries()) {
       // deno-fmt-ignore
@@ -420,6 +428,7 @@ export function assertDescriptionLineLengthUnder69(
       }
     }
   });
+  // FIXME: `subcommands` isn't an array
   forEachSubcommand(spec, (subcommands, path) => {
     for (const [index, subcommand] of makeArray(subcommands).entries()) {
       if (subcommand.description) {
@@ -537,6 +546,31 @@ export function assertOptionNameReferencesExist(
   });
 }
 
+/**
+ * Asserts that commands that will match subcommands by prefix do not take arguments
+ */
+export function assertPrefixMatchCommandsHaveNoArguments(
+  spec: Subcommand,
+): void {
+  forEachSubcommand(spec, (subcommand, path) => {
+    // Skip if the final parser directive in the chain is false
+    // TODO: this could probably be a utility function, `isParserDirectiveOn`
+    const skip = path
+      .map((cmd) => cmd.parserDirectives?.subcommandsMatchUniquePrefix)
+      .filter((value) => value !== undefined)
+      .at(-1) === false;
+
+    if (skip) return;
+
+    assert(
+      !(subcommand.subcommands && subcommand.args),
+      `The command ${
+        namedArrayToString(...path)
+      } has at least one argument and subcommand, but matches subcommands based on unique prefixes. To fix this, use \`parserDirectives: { subcommandsMatchUniquePrefix: false }\``,
+    );
+  });
+}
+
 export type TestNamingStyle = "sentence" | "function";
 
 /** Options that can be provided to `test` */
@@ -560,6 +594,15 @@ export interface TestOptions {
    * Allows descriptions to have lines over 68 characters long
    */
   allowLongDescriptionLines?: boolean;
+
+  /**
+   * Allow commands to have `parserDirectives.subcommandsMatchUniquePrefix` with args
+   *
+   * This is not allowed by default because it's probably a mistake. It makes
+   * arguments ambiguous, users may not know if their invocation will run a
+   * subcommand or the command.
+   */
+  allowMatchingSubcommandPrefixAndArgs?: boolean;
 
   /**
    * Change the naming style of the tests.
@@ -592,6 +635,7 @@ export function test(
     allowShadowingPersistentOptions = false,
     allowNoDescription = false,
     allowLongDescriptionLines = false,
+    allowMatchingSubcommandPrefixAndArgs = false,
     namingStyle = "sentence",
   } = options;
   return async (t) => {
@@ -757,5 +801,17 @@ export function test(
         assertOptionNameReferencesExist(spec);
       },
     );
+    if (!allowMatchingSubcommandPrefixAndArgs) {
+      await t.step(
+        getName(namingStyle, {
+          "sentence":
+            "Commands with `subcommandsMatchUniquePrefix` don't have arguments and subcommands",
+          "function": "assertPrefixMatchCommandsHaveNoArguments",
+        }),
+        () => {
+          assertPrefixMatchCommandsHaveNoArguments(spec);
+        },
+      );
+    }
   };
 }

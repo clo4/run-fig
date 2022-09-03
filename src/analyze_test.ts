@@ -395,3 +395,88 @@ Deno.test({
     );
   },
 });
+
+Deno.test({
+  name: "analyze: subcommandsMatchUniquePrefix",
+  fn() {
+    const spec: Spec = {
+      name: "test",
+      parserDirectives: {
+        subcommandsMatchUniquePrefix: true,
+      },
+      subcommands: [
+        { name: ["long-name", "name"] },
+        { name: "long-time" },
+        { name: ["abc-def", "abc-xyz"] },
+        { name: "abc" },
+      ],
+    };
+    // matches one exactly
+    assertEqualsTokens(
+      analyze(["long-name"], spec),
+      [
+        $subcommand<Subcommand, Option>(
+          0,
+          0,
+          9,
+          "long-name",
+          spec.subcommands![0],
+        ),
+      ],
+    );
+    // Matches one exactly, even when it is the prefix of another command
+    assertEqualsTokens(
+      analyze(["abc"], spec),
+      [
+        $subcommand<Subcommand, Option>(
+          0,
+          0,
+          3,
+          "abc",
+          spec.subcommands![3],
+        ),
+      ],
+    );
+    // Match a command when it has two names that share the same prefix
+    assertEqualsTokens(
+      analyze(["abc-"], spec),
+      [
+        $subcommand<Subcommand, Option>(
+          0,
+          0,
+          4,
+          "abc-",
+          spec.subcommands![2],
+        ),
+      ],
+    );
+    // should match both, so no unique subcommand, fails subcommand check.
+    // on commands with requiresSubcommand, this will still fail at runtime
+    assertEqualsTokens(
+      analyze(["long-"], spec),
+      [$arg(0, 0, 5, "long-")],
+    );
+    // should match only one
+    assertEqualsTokens(
+      analyze(["long-n"], spec),
+      [$subcommand<Subcommand, Option>(
+        0,
+        0,
+        6,
+        "long-n",
+        spec.subcommands![0],
+      )],
+    );
+    // should match only one
+    assertEqualsTokens(
+      analyze(["n"], spec),
+      [$subcommand<Subcommand, Option>(
+        0,
+        0,
+        1,
+        "n",
+        spec.subcommands![0],
+      )],
+    );
+  },
+});
