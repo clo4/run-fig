@@ -126,7 +126,7 @@ export const usage: Action = ({ path, args: [command], error, help }) => {
   }
 
   if (command === "") {
-    error(`Found an empty string, but expected a command\n\n${
+    error(`Expected a subcommand, but the value was empty\n\n${
       help({
         description: false,
       })
