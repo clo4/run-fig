@@ -564,7 +564,9 @@ export function assertPrefixMatchCommandsHaveNoArguments(
 
     assert(
       !(subcommand.subcommands && subcommand.args),
-      `The command ${namedArrayToString(...path)} has at least one argument and subcommand, but matches subcommands based on unique prefixes. To fix this, use \`parserDirectives: { subcommandsMatchUniquePrefix: false }\``
+      `The command ${
+        namedArrayToString(...path)
+      } has at least one argument and subcommand, but matches subcommands based on unique prefixes. To fix this, use \`parserDirectives: { subcommandsMatchUniquePrefix: false }\``,
     );
   });
 }

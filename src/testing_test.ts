@@ -955,7 +955,7 @@ Deno.test("testing: assertPrefixMatchCommandsHaveNoArguments", () => {
       subcommands: [{
         name: "test",
         args: { name: "args" },
-        subcommands: [{ name: "test" }]
+        subcommands: [{ name: "test" }],
       }],
     });
   });
@@ -965,7 +965,7 @@ Deno.test("testing: assertPrefixMatchCommandsHaveNoArguments", () => {
       parserDirectives: {
         subcommandsMatchUniquePrefix: true,
       },
-      args: {name: "test"},
+      args: { name: "test" },
       subcommands: [{ name: "test" }],
     });
   });
