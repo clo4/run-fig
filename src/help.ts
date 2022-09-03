@@ -142,7 +142,7 @@ export const usage: Action = ({ path, args: [command], error, help }) => {
     .flatMap((cmd) => cmd.name);
 
   if (subcommands && subcommands.length > 0) {
-    const matchPrefix = getParserDirective(path, "matchSubcommandAbbreviation");
+    const matchPrefix = getParserDirective(path, "subcommandsMatchUniquePrefix");
     if (matchPrefix) {
       const possible = subcommands.filter((name) => name.startsWith(command));
 

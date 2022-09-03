@@ -460,7 +460,7 @@ export interface Subcommand {
      * Match subcommand names on the shortest unique segment instead of
      * requiring exact matches
      */
-    matchSubcommandAbbreviation?: boolean;
+    subcommandsMatchUniquePrefix?: boolean;
   };
 
   /** Hide this command from any place it may be displayed */

@@ -397,12 +397,12 @@ Deno.test({
 });
 
 Deno.test({
-  name: "analyze: matchSubcommandAbbreviation",
+  name: "analyze: subcommandsMatchUniquePrefix",
   fn() {
     const spec: Spec = {
       name: "test",
       parserDirectives: {
-        matchSubcommandAbbreviation: true,
+        subcommandsMatchUniquePrefix: true,
       },
       subcommands: [
         { name: ["long-name", "name"] },

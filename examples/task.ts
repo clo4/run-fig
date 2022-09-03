@@ -14,7 +14,7 @@ const spec: Fig.Spec = {
   ],
   requiresSubcommand: true,
   parserDirectives: {
-    matchSubcommandAbbreviation: true,
+    subcommandsMatchUniquePrefix: true,
   },
   subcommands: [
     {

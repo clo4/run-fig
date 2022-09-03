@@ -16,7 +16,7 @@ interface MinSubcommand<Option extends MinOption> {
     optionArgSeparators?: string | readonly string[];
     flagsArePosixNoncompliant?: boolean;
     optionsMustPrecedeArguments?: boolean;
-    matchSubcommandAbbreviation?: boolean;
+    subcommandsMatchUniquePrefix?: boolean;
   };
 }
 
@@ -244,7 +244,7 @@ export function analyze<
   let separators = ["="];
   let hasFoundArg = false;
   let posixCompliantOptions = true;
-  let matchSubcommandAbbreviation = false;
+  let subcommandsMatchUniquePrefix = false;
   let optionsMustPrecedeArguments = false;
   let hasUsedNonPersistentOption = false;
 
@@ -259,7 +259,7 @@ export function analyze<
       return null;
     }
 
-    if (!matchSubcommandAbbreviation) {
+    if (!subcommandsMatchUniquePrefix) {
       // Only find exact matches.
       return localSubcommands.find((command) =>
         typeof command.name === "string"
@@ -339,8 +339,8 @@ export function analyze<
       );
     }
 
-    if (directives?.matchSubcommandAbbreviation) {
-      matchSubcommandAbbreviation = directives.matchSubcommandAbbreviation;
+    if (directives?.subcommandsMatchUniquePrefix) {
+      subcommandsMatchUniquePrefix = directives.subcommandsMatchUniquePrefix;
     }
 
     if (directives?.optionsMustPrecedeArguments) {
