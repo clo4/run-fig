@@ -9,7 +9,7 @@ import {
   AnalyzeResult,
   Token,
 } from "./analyze.ts";
-import { assertEquals } from "./deps/std_testing_asserts.ts";
+import { assertEquals } from "../deps/std_testing_asserts.ts";
 import { Option, Spec, Subcommand } from "./types.ts";
 
 const assertEqualsTokens = <Subcommand, Option>(

@@ -1,7 +1,7 @@
 import * as Fig from "./testing.ts";
 import { helpCommand } from "./help.ts";
 import type { Option } from "./types.ts";
-import { assertThrows } from "./deps/std_testing_asserts.ts";
+import { assertThrows } from "../deps/std_testing_asserts.ts";
 
 // This should succeed. If it fails, there's either a bug with the command
 // or the testing logic, but either way it's a bug.

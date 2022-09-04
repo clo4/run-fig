@@ -1,6 +1,6 @@
 import { getHelp, usage } from "./help.ts";
 import { Spec } from "./types.ts";
-import { assert } from "./deps/std_testing_asserts.ts";
+import { assert } from "../deps/std_testing_asserts.ts";
 
 /** An object that `includes` objects of type `T` (eg. string, array) */
 interface Includer<T> {

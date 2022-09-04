@@ -1,4 +1,4 @@
-import { assertEquals } from "./deps/std_testing_asserts.ts";
+import { assertEquals } from "../deps/std_testing_asserts.ts";
 import { makeArray, makeArray1 } from "./util.ts";
 
 Deno.test({

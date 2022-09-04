@@ -1,7 +1,7 @@
 import { usage } from "./help.ts";
 import { getMaxArgs, getMinArgs, parse } from "./parse.ts";
 import { Spec, Subcommand } from "./types.ts";
-import { assertEquals, assertThrows } from "./deps/std_testing_asserts.ts";
+import { assertEquals, assertThrows } from "../deps/std_testing_asserts.ts";
 
 function makeMap<V>(record: Record<string, V>): Map<string, V> {
   return new Map(Object.entries(record));

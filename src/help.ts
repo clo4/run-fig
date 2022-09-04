@@ -7,7 +7,7 @@ import type {
   Subcommand,
 } from "./types.ts";
 import { makeArray, makeArray1 } from "./util.ts";
-import { closest } from "./deps/fastest_levenshtein.ts";
+import { closest } from "../deps/fastest_levenshtein.ts";
 
 function getNamed<T extends { name: SingleOrArray<string> }>(
   named: readonly T[],
