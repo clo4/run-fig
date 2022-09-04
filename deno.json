@@ -1,7 +1,8 @@
 {
   "tasks": {
     "update": "bash -c 'shopt -s globstar; deno run -A https://deno.land/x/udd@0.7.5/main.ts **/*.ts'; deno task cache",
-    "cache": "bash -c 'shopt -s globstar; deno cache **/*.ts'"
+    "cache": "bash -c 'shopt -s globstar; deno cache **/*.ts'",
+    "deps_lint": "deno run -A scripts/deps_lint.ts --deps=./deps --src=./src",
   },
   "fig": {
     "update": {
@@ -11,6 +12,10 @@
     "cache": {
       "description": "Cache dependencies",
       "icon": "⬇️"
+    },
+    "deps_lint": {
+      "description": "Lint `deps` folder",
+      "icon": "🧼",
     }
   }
 }
