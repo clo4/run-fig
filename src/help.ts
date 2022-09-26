@@ -28,6 +28,13 @@ function getParserDirective<
   )?.parserDirectives?.[key];
 }
 
+function dedent(str: string) {
+  if (str[0] !== "\n") return str;
+  const lines = str.split("\n").slice(1, -1);
+  const margin = lines[0].length - lines[0].trimStart().length;
+  return lines.map((line) => line.slice(margin)).join("\n");
+}
+
 export interface GetHelpOptions {
   /** Include the top-level description? (default: true) */
   description?: boolean;
@@ -454,7 +461,7 @@ export function formatHelpSections(
   }
 
   if (sections.description) {
-    parts.push(sections.description);
+    parts.push(dedent(sections.description));
   }
 
   if (sections.usage) {
