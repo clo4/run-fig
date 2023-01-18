@@ -70,14 +70,6 @@ export interface Action {
   [kind]?: "Action";
 }
 
-/**
- * An array of commands, starting with the root spec
- *
- * This is useful to perform introspection. This could be used to execute
- * actions of parent commands, or implement a custom help message.
- */
-export type CommandPath = readonly [Spec, ...Command[]];
-
 /** Use the current options */
 export interface OptionArgs {
   /** Escape hatch: the actual map of option names to values */
@@ -153,7 +145,7 @@ export interface ActionInit {
    *
    * This is useful to perform introspection.
    */
-  path: CommandPath;
+  path: NonEmptyArray<Command>;
 
   /**
    * The index of the argument separator (`--`), or -1 if it was not
@@ -268,7 +260,7 @@ export interface ActionInit {
  */
 export interface Spec extends Omit<Command, "name"> {
   /** Name of the CLI */
-  name: string;
+  name?: string;
 }
 
 /**

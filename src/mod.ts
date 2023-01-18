@@ -2,7 +2,6 @@ export type {
   Action,
   ActionInit,
   Arg,
-  CommandPath,
   NonEmptyArray,
   Option,
   OptionArgs,

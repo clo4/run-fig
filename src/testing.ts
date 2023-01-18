@@ -4,7 +4,7 @@
  * @module
  */
 
-import { Arg, Option, SingleOrArray, Command } from "./types.ts";
+import type { Arg, Option, SingleOrArray, Command } from "./types.ts";
 import { isArray, makeArray } from "./collections.ts";
 import { assert, getMaxArgs, getMinArgs } from "./parse.ts";
 

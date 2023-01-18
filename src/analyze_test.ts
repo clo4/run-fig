@@ -10,7 +10,7 @@ import {
   Token,
 } from "./analyze.ts";
 import { assertEquals } from "./deps/std_testing_asserts.ts";
-import { Option, Spec, Command } from "./types.ts";
+import type { Option, Command } from "./types.ts";
 
 const assertEqualsTokens = <Command, Option>(
   a: AnalyzeResult<Command, Option>,
@@ -63,7 +63,7 @@ Deno.test({
 Deno.test({
   name: "analyze: known option with inline arg",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       options: [{ name: "--option" }],
     };
@@ -102,7 +102,7 @@ Deno.test({
 Deno.test({
   name: "analyze: posix-noncompliant options with unknown option",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       parserDirectives: {
         flagsArePosixNoncompliant: true,
@@ -118,7 +118,7 @@ Deno.test({
 Deno.test({
   name: "analyze: posix-noncompliant options with known option",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       parserDirectives: {
         flagsArePosixNoncompliant: true,
@@ -137,7 +137,7 @@ Deno.test({
 Deno.test({
   name: "analyze: option arg separators",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       parserDirectives: {
         optionArgSeparators: ["=", ":"],
@@ -157,7 +157,7 @@ Deno.test({
 Deno.test({
   name: "analyze: anonymous options",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       options: [
         { name: "-", args: {} },
@@ -180,7 +180,7 @@ Deno.test({
 Deno.test({
   name: "analyze: chained options",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       options: [
         { name: "-x" },
@@ -205,7 +205,7 @@ Deno.test({
 Deno.test({
   name: "analyze: command",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       subcommands: [
         {
@@ -228,7 +228,7 @@ Deno.test({
 Deno.test({
   name: "analyze: persistent options",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       options: [
         {
@@ -252,7 +252,7 @@ Deno.test({
 Deno.test({
   name: "analyze: option with args",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       options: [
         {
@@ -276,7 +276,7 @@ Deno.test({
 Deno.test({
   name: "analyze: optionsMustPrecedeArgs",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       parserDirectives: {
         optionsMustPrecedeArguments: true,
@@ -305,7 +305,7 @@ Deno.test({
 Deno.test({
   name: "analyze: subcommandsMatchUniquePrefix",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       parserDirectives: {
         subcommandsMatchUniquePrefix: true,

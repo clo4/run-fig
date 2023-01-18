@@ -1,6 +1,6 @@
 import CLI from "../mod.ts";
 
-const spec: CLI.Spec = {
+CLI.run({
   name: "deno",
   subcommands: [
     {
@@ -13,6 +13,4 @@ const spec: CLI.Spec = {
       ],
     },
   ],
-};
-
-CLI.run(spec);
+});

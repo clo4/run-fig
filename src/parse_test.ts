@@ -1,6 +1,6 @@
 import { usage } from "./help.ts";
 import { getMaxArgs, getMinArgs, parse } from "./parse.ts";
-import { Spec, Command } from "./types.ts";
+import type { Spec, Command } from "./types.ts";
 import { assertEquals, assertThrows } from "./deps/std_testing_asserts.ts";
 
 function makeMap<V>(record: Record<string, V>): Map<string, V> {
@@ -28,7 +28,7 @@ Deno.test("getMaxArgs", () => {
 Deno.test({
   name: "parse: no args and no values executes action",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
     };
     const result = parse([], spec);
@@ -39,7 +39,7 @@ Deno.test({
 Deno.test({
   name: "parse: one arg with one value succeeds",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       args: {},
     };
@@ -52,7 +52,7 @@ Deno.test({
 Deno.test({
   name: "parse: no args with one value fails",
   fn() {
-    const spec: Spec = { name: "test" };
+    const spec: Command = { name: "test" };
     assertThrows(() => {
       parse(["value"], spec);
     });
@@ -62,7 +62,7 @@ Deno.test({
 Deno.test({
   name: "parse: one arg with two values fails",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       args: {},
     };
@@ -75,7 +75,7 @@ Deno.test({
 Deno.test({
   name: "parse: single arg with no values fails",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       args: {},
     };
@@ -88,7 +88,7 @@ Deno.test({
 Deno.test({
   name: "parse: two args arg with one value fails",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       args: [{ name: "arg1" }, { name: "arg2" }],
     };
@@ -101,7 +101,7 @@ Deno.test({
 Deno.test({
   name: "parse: two args with two values succeeds",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       args: [{}, {}],
     };
@@ -114,7 +114,7 @@ Deno.test({
 Deno.test({
   name: "parse: variadic arg succeeds with one value",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       args: { isVariadic: true },
     };
@@ -127,7 +127,7 @@ Deno.test({
 Deno.test({
   name: "parse: variadic arg fails with zero values",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       args: { isVariadic: true },
     };
@@ -140,7 +140,7 @@ Deno.test({
 Deno.test({
   name: "parse: variadic+optional arg succeeds with zero values",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       args: { isVariadic: true, isOptional: true },
     };
@@ -152,7 +152,7 @@ Deno.test({
 Deno.test({
   name: "parse: options without args are [] when present",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       options: [
         { name: ["--present", "--alias"] },
@@ -172,7 +172,7 @@ Deno.test({
 Deno.test({
   name: "parse: options and args can be interspersed",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       options: [{ name: "--option" }],
       args: [{}, {}],
@@ -191,7 +191,7 @@ Deno.test({
 Deno.test({
   name: "parse: options can have values as the next argument",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       options: [{ name: "--arg", args: { name: "optionarg" } }],
       args: [{ name: "arg1" }, { name: "arg2" }],
@@ -210,7 +210,7 @@ Deno.test({
 Deno.test({
   name: "parse: options can take multiple arguments",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       options: [
         {
@@ -232,8 +232,8 @@ Deno.test({
 Deno.test({
   name: "parse: action on spec gets returned",
   fn() {
-    const action: Spec["action"] = () => {};
-    const spec: Spec = {
+    const action: Command["action"] = () => {};
+    const spec: Command = {
       name: "test",
       action,
     };
@@ -245,9 +245,9 @@ Deno.test({
 Deno.test({
   name: "parse: action on command gets returned",
   fn() {
-    const specAction: Spec["action"] = () => {};
-    const subcommandAction: Spec["action"] = () => {};
-    const spec: Spec = {
+    const specAction: Command["action"] = () => {};
+    const subcommandAction: Command["action"] = () => {};
+    const spec: Command = {
       name: "test",
       action: specAction,
       subcommands: [
@@ -265,9 +265,9 @@ Deno.test({
 Deno.test({
   name: "parse: action on option is preferred to spec action",
   fn() {
-    const specAction: Spec["action"] = () => {};
-    const optionAction: Spec["action"] = () => {};
-    const spec: Spec = {
+    const specAction: Command["action"] = () => {};
+    const optionAction: Command["action"] = () => {};
+    const spec: Command = {
       name: "test",
       action: specAction,
       options: [
@@ -288,10 +288,10 @@ Deno.test({
 Deno.test({
   name: "parse: final option action is preferred",
   fn() {
-    const specAction: Spec["action"] = () => {};
-    const optionAction: Spec["action"] = () => {};
-    const finalAction: Spec["action"] = () => {};
-    const spec: Spec = {
+    const specAction: Command["action"] = () => {};
+    const optionAction: Command["action"] = () => {};
+    const finalAction: Command["action"] = () => {};
+    const spec: Command = {
       name: "test",
       action: specAction,
       options: [
@@ -314,7 +314,7 @@ Deno.test({
 Deno.test({
   name: "parse: option actions allow incorrect arguments",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       options: [
         {
@@ -331,7 +331,7 @@ Deno.test({
 Deno.test({
   name: "parse: option arguments can be separated with an equals",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       options: [{ name: "--arg", args: { name: "optionarg" } }],
       args: {},
@@ -350,7 +350,7 @@ Deno.test({
 Deno.test({
   name: "parse: option arg separator cannot be used with more than 1 arg",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       options: [
         { name: "--plain", args: {} },
@@ -383,7 +383,7 @@ Deno.test({
 Deno.test({
   name: "parse: unknown options are rejected",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       args: {},
     };
@@ -403,7 +403,7 @@ Deno.test({
 Deno.test({
   name: "parse: '-' is a valid option name",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       options: [{ name: "-", args: {} }],
     };
@@ -418,7 +418,7 @@ Deno.test({
 Deno.test({
   name: "parse: '+' is a valid option name",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       options: [{ name: "+", args: {} }],
     };
@@ -433,7 +433,7 @@ Deno.test({
 Deno.test({
   name: "parse: '-' option is used if the following character isn't an option",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       options: [
         { name: "-", args: {} },
@@ -458,7 +458,7 @@ Deno.test({
 Deno.test({
   name: "parse: '+' option is used if the following character isn't an option",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       options: [
         { name: "+", args: {} },
@@ -483,7 +483,7 @@ Deno.test({
 Deno.test({
   name: "parse: '+' and '-' are treated as args if they aren't valid options",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       args: [{}, {}],
     };
@@ -496,7 +496,7 @@ Deno.test({
 Deno.test({
   name: "parse: '+' and '-' are treated as args if there is no argument",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       options: [
         { name: "+", args: {} },
@@ -514,7 +514,7 @@ Deno.test({
 Deno.test({
   name: "parse: options starting with '+ can be chained",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       options: [{ name: "+a" }, { name: "+b" }, { name: "+c" }],
     };
@@ -531,7 +531,7 @@ Deno.test({
 Deno.test({
   name: "parse: options starting with a single dash can be chained",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       options: [{ name: "-a" }, { name: "-b" }, { name: "-c" }],
     };
@@ -550,7 +550,7 @@ Deno.test({
 Deno.test({
   name: "parse: chained options can have arguments in the same value with no separator",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       options: [{ name: "-a" }, { name: "-b", args: {} }, { name: "-c" }],
     };
@@ -566,7 +566,7 @@ Deno.test({
 Deno.test({
   name: "parse: chained options ignore separators",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       options: [{ name: "-a" }, { name: "-b", args: {} }, { name: "-c" }],
     };
@@ -582,7 +582,7 @@ Deno.test({
 Deno.test({
   name: "parse: chained options can have arguments in the next token",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       options: [{ name: "-a" }, { name: "-b", args: {} }, { name: "-c" }],
     };
@@ -598,7 +598,7 @@ Deno.test({
 Deno.test({
   name: "parse: tokens starting with '--' that don't match an option is an error",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       args: {}, // just to make sure that it won't fail because it's an argument
     };
@@ -611,7 +611,7 @@ Deno.test({
 Deno.test({
   name: "parse: POSIX noncompliance disables throwing on unknown options",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       args: {}, // just to make sure that it won't fail because it's an argument
       parserDirectives: {
@@ -627,7 +627,7 @@ Deno.test({
 Deno.test({
   name: "parse: POSIX-noncompliant options work as expected",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       parserDirectives: {
         flagsArePosixNoncompliant: true,
@@ -652,7 +652,7 @@ Deno.test({
 Deno.test({
   name: "parse: option arguments can have another separator",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       parserDirectives: {
         optionArgSeparators: ":",
@@ -674,7 +674,7 @@ Deno.test({
 Deno.test({
   name: "parse: subcommands are optional",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       options: [{ name: "--arg", args: { name: "optionarg" } }],
       args: {},
@@ -683,7 +683,7 @@ Deno.test({
 
     const result = parse(["test"], spec);
 
-    const wantPath: [Spec, ...Command[]] = [spec];
+    const wantPath: [Command, ...Command[]] = [spec];
     assertEquals(result.path, wantPath);
 
     const wantOptions = new Map();
@@ -699,14 +699,14 @@ Deno.test({
   fn() {
     const two: Command = { name: "two" };
     const one: Command = { name: "one", subcommands: [two] };
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       subcommands: [one],
     };
 
     const result = parse(["one", "two"], spec);
 
-    const wantPath: [Spec, ...Command[]] = [spec, one, two];
+    const wantPath: [Command, ...Command[]] = [spec, one, two];
     assertEquals(result.path, wantPath);
   },
 });
@@ -715,7 +715,7 @@ Deno.test({
   name: "parse: subcommands are preferred over arguments",
   fn() {
     const command: Command = { name: "command" };
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       subcommands: [command],
       args: {},
@@ -733,7 +733,7 @@ Deno.test({
       name: "command",
       options: [{ name: "--sub" }],
     };
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       options: [{ name: "--top", isPersistent: true }],
       subcommands: [command],
@@ -747,7 +747,7 @@ Deno.test({
 Deno.test({
   name: "parse: persistent options can be used before a command",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       options: [{ name: "--persistent", isPersistent: true }],
       subcommands: [{ name: "command" }],
@@ -760,7 +760,7 @@ Deno.test({
 Deno.test({
   name: "parse: non-persistent options prevent subcommands from being used",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "test",
       options: [{ name: "--not-persistent" }],
       subcommands: [{ name: "command" }],
@@ -775,7 +775,7 @@ Deno.test({
 Deno.test({
   name: "parse: '--' token causes all tokens after it to become args",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "command",
       options: [{ name: "--one" }, { name: "--two" }],
       args: [{}, {}],
@@ -798,7 +798,7 @@ Deno.test({
 Deno.test({
   name: "parse: '--' fails with too few arguments",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "command",
       args: [{}, { isOptional: true }],
     };
@@ -811,7 +811,7 @@ Deno.test({
 Deno.test({
   name: "parse: '--' fails with too many arguments",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "command",
       args: [{}, { isOptional: true }],
     };
@@ -824,7 +824,7 @@ Deno.test({
 Deno.test({
   name: "parse: '--' cannot be provided after all the arguments",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "command",
       args: {},
     };
@@ -842,7 +842,7 @@ Deno.test({
 Deno.test({
   name: "parse: non-repeatable options cannot be repeated",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "command",
       options: [{ name: "--normal" }],
     };
@@ -855,7 +855,7 @@ Deno.test({
 Deno.test({
   name: "parse: repeatable options definitely have one item in the array",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "command",
       options: [{ name: ["-r", "--rep"], isRepeatable: true }],
     };
@@ -873,7 +873,7 @@ Deno.test({
 Deno.test({
   name: "parse: infinitely repeatable options work",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "command",
       options: [{ name: ["-r", "--rep"], isRepeatable: true }],
     };
@@ -899,7 +899,7 @@ Deno.test({
 Deno.test({
   name: "parse: finite repeatable options work",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "command",
       options: [{ name: ["-r", "--rep"], isRepeatable: 2 }],
     };
@@ -931,7 +931,7 @@ Deno.test({
 Deno.test({
   name: "parse: requiresSeparator is true",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "command",
       options: [{ name: "--sep", requiresSeparator: true, args: {} }],
       args: { isOptional: true },
@@ -952,7 +952,7 @@ Deno.test({
 Deno.test({
   name: "parse: requiresSeparator with optional argument",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "command",
       options: [
         {
@@ -987,7 +987,7 @@ Deno.test({
 Deno.test({
   name: "parse: requiresSeparator with optional argument and following option",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "command",
       options: [
         {
@@ -1015,7 +1015,7 @@ Deno.test({
 Deno.test({
   name: "parse: requiresSeparator with optional argument and following command",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "command",
       options: [
         {
@@ -1042,7 +1042,7 @@ Deno.test({
 Deno.test({
   name: "parse: requiresSeparator with variadic argument",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "command",
       options: [
         {
@@ -1067,7 +1067,7 @@ Deno.test({
 Deno.test({
   name: "parse: requiresSeparator is the correct string",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "command",
       parserDirectives: {
         optionArgSeparators: ["=", ":"],
@@ -1090,7 +1090,7 @@ Deno.test({
 Deno.test({
   name: "parse: requiresSeparator option with following command",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "command",
       options: [
         {
@@ -1111,7 +1111,7 @@ Deno.test({
 Deno.test({
   name: "parse: exclusiveOn, unidirectional",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "command",
       options: [{ name: "-a", exclusiveOn: ["-b"] }, { name: "-b" }],
     };
@@ -1132,7 +1132,7 @@ Deno.test({
 Deno.test({
   name: "parse: exclusiveOn, bidirectional",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "command",
       options: [
         { name: "-a", exclusiveOn: ["-b"] },
@@ -1156,7 +1156,7 @@ Deno.test({
 Deno.test({
   name: "parse: dependsOn, unidirectional",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "command",
       options: [{ name: "-a", dependsOn: ["-b"] }, { name: "-b" }],
     };
@@ -1173,7 +1173,7 @@ Deno.test({
 Deno.test({
   name: "parse: dependsOn, bidirectional",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "command",
       options: [
         { name: "-a", dependsOn: ["-b"] },
@@ -1194,7 +1194,7 @@ Deno.test({
 Deno.test({
   name: "parse: requiresCommand is equivalent to usage",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "command",
       requiresCommand: true,
     };
@@ -1207,7 +1207,7 @@ Deno.test({
   name: "parse: requiresCommand doesn't return CLI.usage when there is an action",
   fn() {
     const action = () => {};
-    const spec: Spec = {
+    const spec: Command = {
       name: "command",
       requiresCommand: true,
       action,
@@ -1220,7 +1220,7 @@ Deno.test({
 Deno.test({
   name: "parse: Option.isRequired throws when not provided",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "command",
       options: [{ name: "--angry", isRequired: true }],
     };
@@ -1234,7 +1234,7 @@ Deno.test({
 Deno.test({
   name: "parse: Option.isRequired works when persistent",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "command",
       options: [{ name: "--angry", isRequired: true, isPersistent: true }],
       subcommands: [{ name: "cmd" }],
@@ -1249,7 +1249,7 @@ Deno.test({
 Deno.test({
   name: "parse: Option.isRequired on subcommands",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "command",
       subcommands: [
         {

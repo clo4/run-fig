@@ -1,4 +1,4 @@
-import type { ActionInit, Spec } from "./types.ts";
+import type { ActionInit, Command, Spec } from "./types.ts";
 import { parse, ParseResult } from "./parse.ts";
 import { getHelp } from "./help.ts";
 import { ParseError, UnknownOption } from "./errors.ts";
@@ -42,8 +42,12 @@ export async function execute(
   args: readonly string[]
 ): Promise<number> {
   let result: ParseResult;
+  if (!spec.name) {
+    spec.name = "<cmd>";
+  }
   try {
-    result = parse(args, spec);
+    // `spec` is a `Command` because it's now guaranteed to have a name
+    result = parse(args, spec as Command);
   } catch (error: unknown) {
     if (error instanceof UnknownOption) {
       const helpMessage = getHelp(error.context.path, {

@@ -1,11 +1,4 @@
-import type {
-  Action,
-  CommandPath,
-  NonEmptyArray,
-  Option,
-  Spec,
-  Command,
-} from "./types.ts";
+import type { Action, NonEmptyArray, Option, Command } from "./types.ts";
 import { analyze, BaseToken, TokenOption, TokenCommand } from "./analyze.ts";
 import { isArray, makeArray, setEach } from "./collections.ts";
 import {
@@ -30,7 +23,7 @@ export interface ParseResult {
   args: string[];
   argSeparatorIndex: number;
   options: Map<string, string[]>;
-  path: CommandPath;
+  path: NonEmptyArray<Command>;
   actions: Action[];
   optionActions: Action[];
 }
@@ -95,8 +88,8 @@ function get<K, V>(map: Map<K, V>, key: K | NonEmptyArray<K>): V | undefined {
  *
  * This function is exposed to make it easier to build a custom runner.
  */
-export function parse(input: readonly string[], spec: Spec): ParseResult {
-  const path: [Spec, ...Command[]] = [spec];
+export function parse(input: readonly string[], spec: Command): ParseResult {
+  const path: [Command, ...Command[]] = [spec];
   const actions: Action[] = [];
   const optionActions: Action[] = [];
 

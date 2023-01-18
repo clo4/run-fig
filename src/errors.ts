@@ -3,12 +3,12 @@ import type {
   TokenOptionArg,
   TokenUnknownOption,
 } from "./analyze.ts";
-import type { CommandPath } from "./types.ts";
+import type { Command, NonEmptyArray } from "./types.ts";
 
 const repr = JSON.stringify as (str: string) => string;
 
 export interface ErrorContext {
-  path: CommandPath;
+  path: NonEmptyArray<Command>;
 }
 
 export class ParseError extends Error {
@@ -31,7 +31,9 @@ export class UnknownOption extends ParseError {
   readonly validOptions: string[];
   constructor(token: TokenUnknownOption, context: ErrorContext) {
     // deno-fmt-ignore
-    const msg = `${repr(token.literal)} looks like a flag, but is unknown in this context`;
+    const msg = `${repr(
+      token.literal
+    )} looks like a flag, but is unknown in this context`;
     super(context, msg);
     this.option = token.literal;
     this.validOptions = token.validOptions;
@@ -73,22 +75,24 @@ export class TooManyArguments extends ParseError {
 
 export class TooFewOptionArguments extends ParseError {
   constructor(min: number, max: number, context: ErrorContext) {
-    const msg = min === max
-      ? `Option needs ${min} argument${min === 1 ? "" : "s"}`
-      : !Number.isFinite(max)
-      ? `Option needs at least ${min} argument${min === 1 ? "" : "s"}`
-      : `Option needs between ${min} and ${max} arguments`;
+    const msg =
+      min === max
+        ? `Option needs ${min} argument${min === 1 ? "" : "s"}`
+        : !Number.isFinite(max)
+        ? `Option needs at least ${min} argument${min === 1 ? "" : "s"}`
+        : `Option needs between ${min} and ${max} arguments`;
     super(context, msg);
   }
 }
 
 export class TooFewArguments extends ParseError {
   constructor(min: number, max: number, context: ErrorContext) {
-    const msg = min === max
-      ? `Expected ${min} argument${min === 1 ? "" : "s"}`
-      : !Number.isFinite(max)
-      ? `Expected at least ${min} argument${min === 1 ? "" : "s"}`
-      : `Expected between ${min} and ${max} arguments`;
+    const msg =
+      min === max
+        ? `Expected ${min} argument${min === 1 ? "" : "s"}`
+        : !Number.isFinite(max)
+        ? `Expected at least ${min} argument${min === 1 ? "" : "s"}`
+        : `Expected between ${min} and ${max} arguments`;
     super(context, msg);
   }
 }

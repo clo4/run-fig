@@ -1,5 +1,5 @@
 import { getHelp, usage } from "./help.ts";
-import { Spec } from "./types.ts";
+import type { Command } from "./types.ts";
 import { assert } from "./deps/std_testing_asserts.ts";
 
 /** An object that `includes` objects of type `T` (eg. string, array) */
@@ -26,7 +26,7 @@ function assertNotIncludes<T>(includer: Includer<T>, notIncluded: T): void {
 Deno.test({
   name: "help: no path, no subcommands",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "TEST_NAME",
       description: "019283",
       options: [
@@ -53,7 +53,7 @@ Deno.test({
 Deno.test({
   name: "help: no path, with subcommands",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "TEST_NAME",
       options: [
         {
@@ -80,7 +80,7 @@ Deno.test({
 Deno.test({
   name: "help: no path, with subcommands, requires command",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "TEST_NAME",
       requiresCommand: true,
       options: [
@@ -108,7 +108,7 @@ Deno.test({
 Deno.test({
   name: "help: path with persistent options",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "TEST_NAME",
       action: usage,
       options: [
@@ -148,7 +148,7 @@ Deno.test({
 Deno.test({
   name: "help: path with persistent options and no option on command",
   fn() {
-    const spec: Spec = {
+    const spec: Command = {
       name: "TEST_NAME",
       action: usage,
       options: [
