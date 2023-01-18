@@ -27,7 +27,7 @@ export type SingleOrArray<T> = T | readonly [T, T, ...T[]];
 export type SingleOrArrayOrEmpty<T> = T | [] | readonly [T, T, ...T[]];
 
 /**
- * An action is a function that's associated with a subcommand or option
+ * An action is a function that's associated with a command or option
  *
  * It can be async, and returns either nothing or the desired exit code.
  * Simple CLIs can put all the logic into this function, but a more
@@ -76,7 +76,7 @@ export interface Action {
  * This is useful to perform introspection. This could be used to execute
  * actions of parent commands, or implement a custom help message.
  */
-export type CommandPath = readonly [Spec, ...Subcommand[]];
+export type CommandPath = readonly [Spec, ...Command[]];
 
 /** Use the current options */
 export interface OptionArgs {
@@ -106,7 +106,7 @@ export interface ActionInit {
   options: OptionArgs;
 
   /**
-   * Arguments found for the subcommand
+   * Arguments found for the command
    *
    * This is just an array of strings. Reconciling the arg values to the
    * argument definitions is done in the action. It's easiest to do this with
@@ -200,9 +200,9 @@ export interface ActionInit {
    * ```
    * const spec: CLI.Spec = {
    *   name: "example",
-   *   requiresSubcommand: true,
+   *   requiresCommand: true,
    *   action({ help }) {
-   *     console.log("A subcommand is required");
+   *     console.log("A command is required");
    *     console.log(help({ usage: false }));
    *   },
    *   subcommands: [
@@ -233,17 +233,17 @@ export interface ActionInit {
      *
      * By default, if path isn't provided, the current path is used.
      */
-    path?: NonEmptyArray<Subcommand>;
+    path?: NonEmptyArray<Command>;
   }): string;
 }
 
 /**
  * A top-level command. This is the entrypoint to your CLI.
  *
- * This is identical to a Subcommand, except the name must be a single string
+ * This is identical to a Command, except the name must be a single string
  * instead of an array of strings.
  *
- * Specs can have infinitely-nested subcommands. If a subcommand doesn't define
+ * Specs can have infinitely-nested subcommands. If a command doesn't define
  * an action, it inherits the action from its parent. If no actions are defined,
  * running the CLI will return a status code of 1.
  *
@@ -266,16 +266,16 @@ export interface ActionInit {
  * };
  * ```
  */
-export interface Spec extends Omit<Subcommand, "name"> {
+export interface Spec extends Omit<Command, "name"> {
   /** Name of the CLI */
   name: string;
 }
 
 /**
- * Parser directives for subcommands. These are options defined on the subcommand
+ * Parser directives for subcommands. These are options defined on the command
  * that control how the parser works, without having to touch the parser itself.
  */
-export interface SubcommandParserDirectives {
+export interface CommandParserDirectives {
   /**
    * Makes all option names literal, disables option chaining, and disables
    * unknown options.
@@ -284,7 +284,7 @@ export interface SubcommandParserDirectives {
    * it's true, option names are treated literally, which means you can use
    * names such as `abc` instead of `--abc`.
    *
-   * This is inherited for all subcommands unless a child subcommand sets it
+   * This is inherited for all subcommands unless a child command sets it
    * to false.
    */
   flagsArePosixNoncompliant?: boolean;
@@ -307,23 +307,23 @@ export interface SubcommandParserDirectives {
   optionArgSeparators?: SingleOrArrayOrEmpty<string>;
 
   /**
-   * Match subcommand names on the shortest unique segment instead of
+   * Match command names on the shortest unique segment instead of
    * requiring exact matches
    */
   subcommandsMatchUniquePrefix?: boolean;
 }
 
 /**
- * A subcommand is something that can be executed
+ * A command is something that can be executed
  *
  * Think of it like an API endpoint. You've used subcommands before, such
- * as `git commit` (`commit` is the subcommand), and `deno run`.
+ * as `git commit` (`commit` is the command), and `deno run`.
  *
- * Subcommands can have infinitely-nested subcommands. If a subcommand doesn't define
+ * Commands can have infinitely-nested subcommands. If a command doesn't define
  * an action, it inherits the action from its parent. If no actions are defined,
  * running the CLI will return a status code of 1.
  *
- * Subcommands can only be invoked if there are no arguments or non-persistent
+ * Commands can only be invoked if there are no arguments or non-persistent
  * options preceding it. In the example below, you can use `--unstable` before
  * `run`, and still invoke the command.
  *
@@ -357,7 +357,7 @@ export interface SubcommandParserDirectives {
  * };
  * ```
  */
-export interface Subcommand {
+export interface Command {
   /** Name of the command, used for matching and filtering */
   name: SingleOrArray<string>;
 
@@ -380,7 +380,7 @@ export interface Subcommand {
    *
    * If more than one paragraph is provided (separated by two newlines,
    * eg. `\n\n`), the first one will be used as the short description. This
-   * is shown as the description next to the subcommand in the `--help` menu.
+   * is shown as the description next to the command in the `--help` menu.
    *
    * The description is literal. It won't be dedented.
    *
@@ -416,7 +416,7 @@ export interface Subcommand {
    * Arguments allow you to take some data, such as file names
    *
    * If this command can take both subcommands and arguments, it can either
-   * be invoked with subcommands _or_ arguments. Subcommands are preferred,
+   * be invoked with subcommands _or_ arguments. Commands are preferred,
    * but the name must match exactly.
    */
   args?: SingleOrArray<Arg>;
@@ -457,20 +457,20 @@ export interface Subcommand {
   options?: NonEmptyArray<Option>;
 
   /**
-   * Subcommands of this command
+   * Commands of this command
    *
    * If this command can take both subcommands and arguments, it can either
    * be invoked with subcommands **OR** arguments. The parser decides to
-   * use a subcommand if the first "argument" provided is the name of a
-   * subcommand.
+   * use a command if the first "argument" provided is the name of a
+   * command.
    *
    * Note that _this_ command's options are _not_ automatically inherited by
    * subcommands, unless the option is persistent (`isPersistent: true`)
    */
-  subcommands?: NonEmptyArray<Subcommand>;
+  subcommands?: NonEmptyArray<Command>;
 
   /** Directly control parser behavior, such as "what counts as an option" */
-  parserDirectives?: SubcommandParserDirectives;
+  parserDirectives?: CommandParserDirectives;
 
   /** Hide this command from any place it may be displayed */
   hidden?: true;
@@ -483,15 +483,15 @@ export interface Subcommand {
    * informing the autocomplete engine.
    *
    * When this property is true, autocomplete will always insert a space after
-   * the subcommand name.
+   * the command name.
    *
-   * Note that actions are optional if using `requiresSubcommand`.
+   * Note that actions are optional if using `requiresCommand`.
    *
-   * NOTE: When `requiresSubcommand` is true, arguments are allowed even if
+   * NOTE: When `requiresCommand` is true, arguments are allowed even if
    * the command doesn't allow them. This is so the runtime can implement a
    * more useful error message for typos.
    */
-  requiresSubcommand?: true;
+  requiresCommand?: true;
 
   /**
    * Run this action when the command is used
@@ -501,7 +501,7 @@ export interface Subcommand {
    * You can use method-definition syntax to define the action, eg.
    * `action() {...}`. This is how all examples are formatted.
    *
-   * Note that actions are optional if using `requiresSubcommand`.
+   * Note that actions are optional if using `requiresCommand`.
    *
    * ## Example
    * ```ts
@@ -537,7 +537,7 @@ export interface Subcommand {
 
   /**
    * This property never exists. It's used purely to break compatibility
-   * between `Option` and `Subcommand`, so that accidental assignments
+   * between `Option` and `Command`, so that accidental assignments
    * don't happen.
    *
    * In reality, the types _are_ compatible, but assigning one to another is
@@ -545,13 +545,13 @@ export interface Subcommand {
    *
    * @ignore
    */
-  [kind]?: "Subcommand";
+  [kind]?: "Command";
 }
 
 /**
  * Options are used to modify how a command executes
  *
- * These are provided after the subcommand and belong specifically to their
+ * These are provided after the command and belong specifically to their
  * parent command. You've used these before, such as the permissions flags in
  * a `deno` command, eg. `deno run --allow-read --allow-net server.ts`.
  *
@@ -561,7 +561,7 @@ export interface Subcommand {
  *
  * By default, options must start with `-` (eg. `-a`), `+` (`+o`), or `--` (`--abc`).
  * Option names that start with anything else won't be found unless a parent
- * subcommand has `parserDirectives.flagsArePosixNoncompliant` set to `true`,
+ * command has `parserDirectives.flagsArePosixNoncompliant` set to `true`,
  * which enables literal option names.
  *
  * Options can also have actions, which will be executed _instead of the subcommand_.
@@ -680,7 +680,7 @@ export interface Option {
    * There are some cases where a required option makes sense:
    * - Forcing confirmation of an action, such as `typescript-language-server --stdio`
    *   which makes sure you don't end up in a confusing state by default.
-   *   - Note that this would still be better suited to a subcommand.
+   *   - Note that this would still be better suited to a command.
    * - Knowing that the default behavior, ie. _without_ the option, isn't
    *   implemented yet but will be in the future.
    */
@@ -734,20 +734,20 @@ export interface Option {
   /**
    * Action performed when this option is provided
    *
-   * The subcommand and remaining options/args will continue to be parsed.
-   * Option actions are executed instead of subcommand actions -- the final
+   * The command and remaining options/args will continue to be parsed.
+   * Option actions are executed instead of command actions -- the final
    * option action will be used.
    *
    * This shouldn't be used to slightly change the behavior of an option.
    * It also disables checking the minimum number of arguments. The intended
-   * use for option actions is to replicate the behavior of a subcommand,
+   * use for option actions is to replicate the behavior of a command,
    * like `--help` and `--version`.
    */
   action?: Action;
 
   /**
    * This property never exists. It's used purely to break compatibility
-   * between `Option` and `Subcommand`, so that accidental assignments
+   * between `Option` and `Command`, so that accidental assignments
    * don't happen.
    *
    * In reality, the types _are_ compatible, but assigning one to another is
@@ -759,7 +759,7 @@ export interface Option {
 }
 
 /**
- * Args are used to provide values to an option or subcommand
+ * Args are used to provide values to an option or command
  *
  * This is the script name in `deno run script.ts`, or the text in `grep TODO`.
  *

@@ -1,6 +1,6 @@
 import { usage } from "./help.ts";
 import { getMaxArgs, getMinArgs, parse } from "./parse.ts";
-import { Spec, Subcommand } from "./types.ts";
+import { Spec, Command } from "./types.ts";
 import { assertEquals, assertThrows } from "./deps/std_testing_asserts.ts";
 
 function makeMap<V>(record: Record<string, V>): Map<string, V> {
@@ -193,13 +193,8 @@ Deno.test({
   fn() {
     const spec: Spec = {
       name: "test",
-      options: [
-        { name: "--arg", args: { name: "optionarg" } },
-      ],
-      args: [
-        { name: "arg1" },
-        { name: "arg2" },
-      ],
+      options: [{ name: "--arg", args: { name: "optionarg" } }],
+      args: [{ name: "arg1" }, { name: "arg2" }],
     };
 
     const result = parse(["value1", "--arg", "optargval", "value2"], spec);
@@ -220,10 +215,7 @@ Deno.test({
       options: [
         {
           name: "--arg",
-          args: [
-            { name: "optionarg1" },
-            { name: "optionarg2" },
-          ],
+          args: [{ name: "optionarg1" }, { name: "optionarg2" }],
         },
       ],
     };
@@ -251,17 +243,19 @@ Deno.test({
 });
 
 Deno.test({
-  name: "parse: action on subcommand gets returned",
+  name: "parse: action on command gets returned",
   fn() {
     const specAction: Spec["action"] = () => {};
     const subcommandAction: Spec["action"] = () => {};
     const spec: Spec = {
       name: "test",
       action: specAction,
-      subcommands: [{
-        name: "example",
-        action: subcommandAction,
-      }],
+      subcommands: [
+        {
+          name: "example",
+          action: subcommandAction,
+        },
+      ],
     };
     const result = parse(["example"], spec);
     assertEquals(result.actions, [specAction, subcommandAction]);
@@ -339,9 +333,7 @@ Deno.test({
   fn() {
     const spec: Spec = {
       name: "test",
-      options: [
-        { name: "--arg", args: { name: "optionarg" } },
-      ],
+      options: [{ name: "--arg", args: { name: "optionarg" } }],
       args: {},
     };
 
@@ -369,12 +361,10 @@ Deno.test({
       ],
     };
 
-    const result = parse([
-      "--plain=value",
-      "--empty=",
-      "--optional=value",
-      "--variadic=value",
-    ], spec);
+    const result = parse(
+      ["--plain=value", "--empty=", "--optional=value", "--variadic=value"],
+      spec
+    );
 
     const wantOptions = makeMap({
       "--plain": ["value"],
@@ -415,9 +405,7 @@ Deno.test({
   fn() {
     const spec: Spec = {
       name: "test",
-      options: [
-        { name: "-", args: {} },
-      ],
+      options: [{ name: "-", args: {} }],
     };
     const result = parse(["-123"], spec);
     const wantOptions = makeMap({
@@ -432,9 +420,7 @@ Deno.test({
   fn() {
     const spec: Spec = {
       name: "test",
-      options: [
-        { name: "+", args: {} },
-      ],
+      options: [{ name: "+", args: {} }],
     };
     const result = parse(["+123"], spec);
     const wantOptions = makeMap({
@@ -530,11 +516,7 @@ Deno.test({
   fn() {
     const spec: Spec = {
       name: "test",
-      options: [
-        { name: "+a" },
-        { name: "+b" },
-        { name: "+c" },
-      ],
+      options: [{ name: "+a" }, { name: "+b" }, { name: "+c" }],
     };
     const result = parse(["+abc"], spec);
     const wantOptions = makeMap({
@@ -551,11 +533,7 @@ Deno.test({
   fn() {
     const spec: Spec = {
       name: "test",
-      options: [
-        { name: "-a" },
-        { name: "-b" },
-        { name: "-c" },
-      ],
+      options: [{ name: "-a" }, { name: "-b" }, { name: "-c" }],
     };
 
     const result = parse(["-abc"], spec);
@@ -570,16 +548,11 @@ Deno.test({
 });
 
 Deno.test({
-  name:
-    "parse: chained options can have arguments in the same value with no separator",
+  name: "parse: chained options can have arguments in the same value with no separator",
   fn() {
     const spec: Spec = {
       name: "test",
-      options: [
-        { name: "-a" },
-        { name: "-b", args: {} },
-        { name: "-c" },
-      ],
+      options: [{ name: "-a" }, { name: "-b", args: {} }, { name: "-c" }],
     };
     const result = parse(["-abc"], spec);
     const wantOptions = makeMap({
@@ -595,11 +568,7 @@ Deno.test({
   fn() {
     const spec: Spec = {
       name: "test",
-      options: [
-        { name: "-a" },
-        { name: "-b", args: {} },
-        { name: "-c" },
-      ],
+      options: [{ name: "-a" }, { name: "-b", args: {} }, { name: "-c" }],
     };
     const result = parse(["-ab=c"], spec);
     const wantOptions = makeMap({
@@ -615,11 +584,7 @@ Deno.test({
   fn() {
     const spec: Spec = {
       name: "test",
-      options: [
-        { name: "-a" },
-        { name: "-b", args: {} },
-        { name: "-c" },
-      ],
+      options: [{ name: "-a" }, { name: "-b", args: {} }, { name: "-c" }],
     };
     const result = parse(["-ab", "c"], spec);
     const wantOptions = makeMap({
@@ -631,8 +596,7 @@ Deno.test({
 });
 
 Deno.test({
-  name:
-    "parse: tokens starting with '--' that don't match an option is an error",
+  name: "parse: tokens starting with '--' that don't match an option is an error",
   fn() {
     const spec: Spec = {
       name: "test",
@@ -676,9 +640,9 @@ Deno.test({
     };
     const result = parse(["present", "another=value"], spec);
     const wantOptions = makeMap({
-      "present": [],
-      "alias": [],
-      "another": ["value"],
+      present: [],
+      alias: [],
+      another: ["value"],
       "another-alias": ["value"],
     });
     assertEquals(result.options, wantOptions);
@@ -693,9 +657,7 @@ Deno.test({
       parserDirectives: {
         optionArgSeparators: ":",
       },
-      options: [
-        { name: "--arg", args: { name: "optionarg" } },
-      ],
+      options: [{ name: "--arg", args: { name: "optionarg" } }],
       args: {},
     };
 
@@ -714,18 +676,14 @@ Deno.test({
   fn() {
     const spec: Spec = {
       name: "test",
-      options: [
-        { name: "--arg", args: { name: "optionarg" } },
-      ],
+      options: [{ name: "--arg", args: { name: "optionarg" } }],
       args: {},
-      subcommands: [
-        { name: "subcommand" },
-      ],
+      subcommands: [{ name: "command" }],
     };
 
     const result = parse(["test"], spec);
 
-    const wantPath: [Spec, ...Subcommand[]] = [spec];
+    const wantPath: [Spec, ...Command[]] = [spec];
     assertEquals(result.path, wantPath);
 
     const wantOptions = new Map();
@@ -739,18 +697,16 @@ Deno.test({
 Deno.test({
   name: "parse: path is correct",
   fn() {
-    const two: Subcommand = { name: "two" };
-    const one: Subcommand = { name: "one", subcommands: [two] };
+    const two: Command = { name: "two" };
+    const one: Command = { name: "one", subcommands: [two] };
     const spec: Spec = {
       name: "test",
-      subcommands: [
-        one,
-      ],
+      subcommands: [one],
     };
 
     const result = parse(["one", "two"], spec);
 
-    const wantPath: [Spec, ...Subcommand[]] = [spec, one, two];
+    const wantPath: [Spec, ...Command[]] = [spec, one, two];
     assertEquals(result.path, wantPath);
   },
 });
@@ -758,14 +714,14 @@ Deno.test({
 Deno.test({
   name: "parse: subcommands are preferred over arguments",
   fn() {
-    const subcommand: Subcommand = { name: "subcommand" };
+    const command: Command = { name: "command" };
     const spec: Spec = {
       name: "test",
-      subcommands: [subcommand],
+      subcommands: [command],
       args: {},
     };
-    const result = parse(["subcommand"], spec);
-    assertEquals(result.path, [spec, subcommand]);
+    const result = parse(["command"], spec);
+    assertEquals(result.path, [spec, command]);
     assertEquals(result.args, []);
   },
 });
@@ -773,30 +729,30 @@ Deno.test({
 Deno.test({
   name: "parse: persistent options are carried through into subcommands",
   fn() {
-    const subcommand: Subcommand = {
-      name: "subcommand",
+    const command: Command = {
+      name: "command",
       options: [{ name: "--sub" }],
     };
     const spec: Spec = {
       name: "test",
       options: [{ name: "--top", isPersistent: true }],
-      subcommands: [subcommand],
+      subcommands: [command],
     };
-    const result = parse(["subcommand", "--top"], spec);
-    assertEquals(result.path, [spec, subcommand]);
+    const result = parse(["command", "--top"], spec);
+    assertEquals(result.path, [spec, command]);
     assertEquals(result.args, []);
   },
 });
 
 Deno.test({
-  name: "parse: persistent options can be used before a subcommand",
+  name: "parse: persistent options can be used before a command",
   fn() {
     const spec: Spec = {
       name: "test",
       options: [{ name: "--persistent", isPersistent: true }],
-      subcommands: [{ name: "subcommand" }],
+      subcommands: [{ name: "command" }],
     };
-    const result = parse(["--persistent", "subcommand"], spec);
+    const result = parse(["--persistent", "command"], spec);
     assertEquals(result.options, makeMap({ "--persistent": [] }));
   },
 });
@@ -807,11 +763,11 @@ Deno.test({
     const spec: Spec = {
       name: "test",
       options: [{ name: "--not-persistent" }],
-      subcommands: [{ name: "subcommand" }],
+      subcommands: [{ name: "command" }],
     };
     // Should fail since the top level command doesn't take an arg
     assertThrows(() => {
-      parse(["--not-persistent", "subcommand"], spec);
+      parse(["--not-persistent", "command"], spec);
     });
   },
 });
@@ -821,24 +777,21 @@ Deno.test({
   fn() {
     const spec: Spec = {
       name: "command",
-      options: [
-        { name: "--one" },
-        { name: "--two" },
-      ],
+      options: [{ name: "--one" }, { name: "--two" }],
       args: [{}, {}],
-      subcommands: [{
-        name: "subcommand",
-        options: [
-          { name: "--yes" },
-        ],
-      }],
+      subcommands: [
+        {
+          name: "command",
+          options: [{ name: "--yes" }],
+        },
+      ],
     };
     const result1 = parse(["--one", "--", "--two", "--"], spec);
     assertEquals(result1.options, makeMap({ "--one": [] }));
     assertEquals(result1.args, ["--two", "--"]);
-    const result2 = parse(["--one", "--", "subcommand", "--yes"], spec);
+    const result2 = parse(["--one", "--", "command", "--yes"], spec);
     assertEquals(result2.options, makeMap({ "--one": [] }));
-    assertEquals(result2.args, ["subcommand", "--yes"]);
+    assertEquals(result2.args, ["command", "--yes"]);
   },
 });
 
@@ -912,7 +865,7 @@ Deno.test({
       makeMap({
         "--rep": [""],
         "-r": [""],
-      }),
+      })
     );
   },
 });
@@ -930,7 +883,7 @@ Deno.test({
       makeMap({
         "--rep": ["", "", "", ""],
         "-r": ["", "", "", ""],
-      }),
+      })
     );
     const result2 = parse(["-rrrr"], spec);
     assertEquals(
@@ -938,7 +891,7 @@ Deno.test({
       makeMap({
         "--rep": ["", "", "", ""],
         "-r": ["", "", "", ""],
-      }),
+      })
     );
   },
 });
@@ -956,7 +909,7 @@ Deno.test({
       makeMap({
         "--rep": ["", ""],
         "-r": ["", ""],
-      }),
+      })
     );
     const result2 = parse(["-rr"], spec);
     assertEquals(
@@ -964,7 +917,7 @@ Deno.test({
       makeMap({
         "--rep": ["", ""],
         "-r": ["", ""],
-      }),
+      })
     );
     assertThrows(() => {
       parse(["--rep", "--rep", "--rep"], spec);
@@ -988,7 +941,7 @@ Deno.test({
       result1.options,
       makeMap({
         "--sep": ["val"],
-      }),
+      })
     );
     assertThrows(() => {
       parse(["--sep", "val"], spec);
@@ -1001,11 +954,13 @@ Deno.test({
   fn() {
     const spec: Spec = {
       name: "command",
-      options: [{
-        name: "--sep",
-        requiresSeparator: true,
-        args: { isOptional: true },
-      }],
+      options: [
+        {
+          name: "--sep",
+          requiresSeparator: true,
+          args: { isOptional: true },
+        },
+      ],
       args: { isOptional: true },
     };
 
@@ -1014,7 +969,7 @@ Deno.test({
       result1.options,
       makeMap({
         "--sep": ["val"],
-      }),
+      })
     );
     assertEquals(result1.args, ["val"]);
 
@@ -1023,7 +978,7 @@ Deno.test({
       result2.options,
       makeMap({
         "--sep": [],
-      }),
+      })
     );
     assertEquals(result2.args, ["val"]);
   },
@@ -1034,13 +989,16 @@ Deno.test({
   fn() {
     const spec: Spec = {
       name: "command",
-      options: [{
-        name: "--sep",
-        requiresSeparator: true,
-        args: { isOptional: true },
-      }, {
-        name: "--example",
-      }],
+      options: [
+        {
+          name: "--sep",
+          requiresSeparator: true,
+          args: { isOptional: true },
+        },
+        {
+          name: "--example",
+        },
+      ],
       args: { isOptional: true },
     };
     const result = parse(["--sep", "--example"], spec);
@@ -1049,26 +1007,25 @@ Deno.test({
       makeMap({
         "--sep": [],
         "--example": [],
-      }),
+      })
     );
   },
 });
 
 Deno.test({
-  name:
-    "parse: requiresSeparator with optional argument and following subcommand",
+  name: "parse: requiresSeparator with optional argument and following command",
   fn() {
     const spec: Spec = {
       name: "command",
-      options: [{
-        name: "--sep",
-        requiresSeparator: true,
-        isPersistent: true,
-        args: { isOptional: true },
-      }],
-      subcommands: [
-        { name: "example" },
+      options: [
+        {
+          name: "--sep",
+          requiresSeparator: true,
+          isPersistent: true,
+          args: { isOptional: true },
+        },
       ],
+      subcommands: [{ name: "example" }],
       args: { isOptional: true },
     };
     const result = parse(["--sep", "example"], spec);
@@ -1076,7 +1033,7 @@ Deno.test({
       result.options,
       makeMap({
         "--sep": [],
-      }),
+      })
     );
     assertEquals(result.path, [spec, spec.subcommands![0]]);
   },
@@ -1087,11 +1044,13 @@ Deno.test({
   fn() {
     const spec: Spec = {
       name: "command",
-      options: [{
-        name: "--sep",
-        requiresSeparator: true,
-        args: { isVariadic: true },
-      }],
+      options: [
+        {
+          name: "--sep",
+          requiresSeparator: true,
+          args: { isVariadic: true },
+        },
+      ],
       args: { isOptional: true },
     };
     const result = parse(["--sep=val", "val"], spec);
@@ -1099,7 +1058,7 @@ Deno.test({
       result.options,
       makeMap({
         "--sep": ["val"],
-      }),
+      })
     );
     assertEquals(result.args, ["val"]);
   },
@@ -1120,7 +1079,7 @@ Deno.test({
       result.options,
       makeMap({
         "--sep": ["val"],
-      }),
+      })
     );
     assertThrows(() => {
       parse(["--sep=val"], spec);
@@ -1129,16 +1088,18 @@ Deno.test({
 });
 
 Deno.test({
-  name: "parse: requiresSeparator option with following subcommand",
+  name: "parse: requiresSeparator option with following command",
   fn() {
     const spec: Spec = {
       name: "command",
-      options: [{
-        name: "--sep",
-        requiresSeparator: true,
-        isPersistent: true,
-        args: {},
-      }],
+      options: [
+        {
+          name: "--sep",
+          requiresSeparator: true,
+          isPersistent: true,
+          args: {},
+        },
+      ],
       subcommands: [{ name: "test" }],
     };
     assertThrows(() => {
@@ -1152,10 +1113,7 @@ Deno.test({
   fn() {
     const spec: Spec = {
       name: "command",
-      options: [
-        { name: "-a", exclusiveOn: ["-b"] },
-        { name: "-b" },
-      ],
+      options: [{ name: "-a", exclusiveOn: ["-b"] }, { name: "-b" }],
     };
     parse(["-a"], spec);
     parse(["-b"], spec);
@@ -1200,10 +1158,7 @@ Deno.test({
   fn() {
     const spec: Spec = {
       name: "command",
-      options: [
-        { name: "-a", dependsOn: ["-b"] },
-        { name: "-b" },
-      ],
+      options: [{ name: "-a", dependsOn: ["-b"] }, { name: "-b" }],
     };
     assertThrows(() => {
       parse(["-a"], spec);
@@ -1237,11 +1192,11 @@ Deno.test({
 });
 
 Deno.test({
-  name: "parse: requiresSubcommand is equivalent to usage",
+  name: "parse: requiresCommand is equivalent to usage",
   fn() {
     const spec: Spec = {
       name: "command",
-      requiresSubcommand: true,
+      requiresCommand: true,
     };
     const result = parse([], spec);
     assertEquals(result.actions, [usage]);
@@ -1249,13 +1204,12 @@ Deno.test({
 });
 
 Deno.test({
-  name:
-    "parse: requiresSubcommand doesn't return CLI.usage when there is an action",
+  name: "parse: requiresCommand doesn't return CLI.usage when there is an action",
   fn() {
     const action = () => {};
     const spec: Spec = {
       name: "command",
-      requiresSubcommand: true,
+      requiresCommand: true,
       action,
     };
     const result = parse([], spec);
@@ -1268,9 +1222,7 @@ Deno.test({
   fn() {
     const spec: Spec = {
       name: "command",
-      options: [
-        { name: "--angry", isRequired: true },
-      ],
+      options: [{ name: "--angry", isRequired: true }],
     };
     assertThrows(() => {
       parse([], spec);
@@ -1284,12 +1236,8 @@ Deno.test({
   fn() {
     const spec: Spec = {
       name: "command",
-      options: [
-        { name: "--angry", isRequired: true, isPersistent: true },
-      ],
-      subcommands: [
-        { name: "cmd" },
-      ],
+      options: [{ name: "--angry", isRequired: true, isPersistent: true }],
+      subcommands: [{ name: "cmd" }],
     };
     assertThrows(() => {
       parse(["cmd"], spec);
@@ -1306,9 +1254,7 @@ Deno.test({
       subcommands: [
         {
           name: "cmd",
-          options: [
-            { name: "--angry", isRequired: true, isPersistent: true },
-          ],
+          options: [{ name: "--angry", isRequired: true, isPersistent: true }],
         },
       ],
     };

@@ -9,10 +9,8 @@ const setTasks = (tasks: string[]) =>
 const spec: CLI.Spec = {
   name: "task",
   description: "An extremely simple to-do list CLI",
-  options: [
-    CLI.help,
-  ],
-  requiresSubcommand: true,
+  options: [CLI.help],
+  requiresCommand: true,
   parserDirectives: {
     subcommandsMatchUniquePrefix: true,
   },
@@ -32,9 +30,7 @@ const spec: CLI.Spec = {
     {
       name: ["list", "ls"],
       description: "List tasks",
-      options: [
-        { name: "--json", description: "List as JSON" },
-      ],
+      options: [{ name: "--json", description: "List as JSON" }],
       action({ options }) {
         const json = localStorage.getItem("tasks");
         if (options.has("--json")) {
@@ -46,7 +42,7 @@ const spec: CLI.Spec = {
           console.log(
             `%c${index + 1}:`,
             "color: green; font-weight: bold",
-            task,
+            task
           );
         }
       },
@@ -68,9 +64,7 @@ const spec: CLI.Spec = {
           },
         },
       },
-      options: [
-        { name: "--quiet", description: "No logging" },
-      ],
+      options: [{ name: "--quiet", description: "No logging" }],
       action({ options, args: [indexArg] }) {
         const index = Number(indexArg) - 1;
         const tasks = getTasks();

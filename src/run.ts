@@ -15,12 +15,12 @@ export function printError(...strings: unknown[]): void {
  * This function returns a number, which represents the expected
  * exit code of the program. You can combine this with `Deno.exit`.
  *
- * - If the subcommand doesn't have any action associated with it,
+ * - If the command doesn't have any action associated with it,
  *   it returns 1.
  * - If the action returns a number above 255, the value is 255.
  * - If the action returns a number below zero, the value is 0.
  *
- * The action that gets run is the final subcommand action. If an
+ * The action that gets run is the final command action. If an
  * option with an action was used, the final option action will be
  * executed instead.
  *
@@ -39,7 +39,7 @@ export function printError(...strings: unknown[]): void {
  */
 export async function execute(
   spec: Spec,
-  args: readonly string[],
+  args: readonly string[]
 ): Promise<number> {
   let result: ParseResult;
   try {
@@ -56,11 +56,9 @@ export async function execute(
       printError(`${error.message}\n\n${helpMessage}`);
     } else if (error instanceof ParseError) {
       printError(
-        `${error.message}\n\n${
-          getHelp(error.context.path, {
-            description: false,
-          })
-        }`,
+        `${error.message}\n\n${getHelp(error.context.path, {
+          description: false,
+        })}`
       );
     } else {
       printError(`${error}`);
@@ -136,7 +134,7 @@ export async function execute(
  */
 export async function run(
   spec: Spec,
-  options: { args?: readonly string[] } = {},
+  options: { args?: readonly string[] } = {}
 ): Promise<never> {
   const { args = Deno.args } = options;
   const code = await execute(spec, args);

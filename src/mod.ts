@@ -9,8 +9,8 @@ export type {
   SingleOrArray,
   SingleOrArrayOrEmpty,
   Spec,
-  Subcommand,
-  SubcommandParserDirectives,
+  Command,
+  CommandParserDirectives,
 } from "./types.ts";
 export { run } from "./run.ts";
 export { help, helpCommand } from "./help.ts";

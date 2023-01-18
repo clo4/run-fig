@@ -11,7 +11,7 @@ interface Includer<T> {
 function assertIncludes<T>(includer: Includer<T>, included: T): void {
   assert(
     includer.includes(included),
-    `Expected to find ${JSON.stringify(included)}`,
+    `Expected to find ${JSON.stringify(included)}`
   );
 }
 
@@ -19,7 +19,7 @@ function assertIncludes<T>(includer: Includer<T>, included: T): void {
 function assertNotIncludes<T>(includer: Includer<T>, notIncluded: T): void {
   assert(
     !includer.includes(notIncluded),
-    `Found ${JSON.stringify(notIncluded)}`,
+    `Found ${JSON.stringify(notIncluded)}`
   );
 }
 
@@ -78,11 +78,11 @@ Deno.test({
 });
 
 Deno.test({
-  name: "help: no path, with subcommands, requires subcommand",
+  name: "help: no path, with subcommands, requires command",
   fn() {
     const spec: Spec = {
       name: "TEST_NAME",
-      requiresSubcommand: true,
+      requiresCommand: true,
       options: [
         {
           name: ["-o", "--option"],
@@ -151,15 +151,19 @@ Deno.test({
     const spec: Spec = {
       name: "TEST_NAME",
       action: usage,
-      options: [{
-        name: ["-o", "--option"],
-        description: "112233",
-        isPersistent: true,
-      }],
-      subcommands: [{
-        name: "unique-name",
-        description: "98765",
-      }],
+      options: [
+        {
+          name: ["-o", "--option"],
+          description: "112233",
+          isPersistent: true,
+        },
+      ],
+      subcommands: [
+        {
+          name: "unique-name",
+          description: "98765",
+        },
+      ],
     };
     const msg = getHelp([spec, spec.subcommands![0]]);
     assertIncludes(msg, "TEST_NAME unique-name");

@@ -4,9 +4,9 @@ import type {
   NonEmptyArray,
   Option,
   Spec,
-  Subcommand,
+  Command,
 } from "./types.ts";
-import { analyze, BaseToken, TokenOption, TokenSubcommand } from "./analyze.ts";
+import { analyze, BaseToken, TokenOption, TokenCommand } from "./analyze.ts";
 import { isArray, makeArray, setEach } from "./collections.ts";
 import {
   ErrorContext,
@@ -96,13 +96,13 @@ function get<K, V>(map: Map<K, V>, key: K | NonEmptyArray<K>): V | undefined {
  * This function is exposed to make it easier to build a custom runner.
  */
 export function parse(input: readonly string[], spec: Spec): ParseResult {
-  const path: [Spec, ...Subcommand[]] = [spec];
+  const path: [Spec, ...Command[]] = [spec];
   const actions: Action[] = [];
   const optionActions: Action[] = [];
 
   if (spec.action) {
     actions.push(spec.action);
-  } else if (spec.requiresSubcommand) {
+  } else if (spec.requiresCommand) {
     actions.push(builtinUsageAction);
   }
 
@@ -155,9 +155,8 @@ export function parse(input: readonly string[], spec: Spec): ParseResult {
     // Repeatable options are treated differently so we
     // *have* to branch on this.
     if (option.isRepeatable) {
-      const maxRepeat = option.isRepeatable === true
-        ? Infinity
-        : option.isRepeatable;
+      const maxRepeat =
+        option.isRepeatable === true ? Infinity : option.isRepeatable;
       let arr = get(foundOptions, option.name);
       if (!arr) {
         arr = [];
@@ -193,11 +192,11 @@ export function parse(input: readonly string[], spec: Spec): ParseResult {
   };
 
   const parseArg = (token: BaseToken) => {
-    // If the final command requires a subcommand, providing too
+    // If the final command requires a command, providing too
     // many arguments is allowed because the user has made a typo
-    // (they were intending to use a subcommand)
+    // (they were intending to use a command)
     if (
-      !path[path.length - 1].requiresSubcommand &&
+      !path[path.length - 1].requiresCommand &&
       foundArgs.length >= commandArgsMax
     ) {
       throw new TooManyArguments(token, ctx());
@@ -209,35 +208,35 @@ export function parse(input: readonly string[], spec: Spec): ParseResult {
     if (foundArgs.length >= commandArgsMax) {
       throw new ParseError(
         ctx(),
-        "Unexpected argument '--', did you mean to use an option instead?",
+        "Unexpected argument '--', did you mean to use an option instead?"
       );
     }
     argSeparatorIndex = foundArgs.length;
     state = State.ParseArgs;
   };
 
-  const parseSubcommand = (token: TokenSubcommand<Subcommand>) => {
-    path.push(token.subcommand);
-    const args = makeArray(token.subcommand.args);
+  const parseCommand = (token: TokenCommand<Command>) => {
+    path.push(token.command);
+    const args = makeArray(token.command.args);
     commandArgsMin = getMinArgs(args);
     commandArgsMax = getMaxArgs(args);
-    if (token.subcommand.action) {
-      actions.push(token.subcommand.action);
-    } else if (token.subcommand.requiresSubcommand) {
+    if (token.command.action) {
+      actions.push(token.command.action);
+    } else if (token.command.requiresCommand) {
       actions.push(builtinUsageAction);
     }
   };
 
   const ctx = () => ({ path } as ErrorContext);
 
-  const { finalState, tokens } = analyze<Subcommand, Option>(input, spec);
+  const { finalState, tokens } = analyze<Command, Option>(input, spec);
 
   for (const token of tokens) {
     switch (state) {
       case State.ParseArgs: {
         switch (token.kind) {
-          case "subcommand": {
-            parseSubcommand(token);
+          case "command": {
+            parseCommand(token);
             break;
           }
           case "arg": {
@@ -267,7 +266,7 @@ export function parse(input: readonly string[], spec: Spec): ParseResult {
       case State.ParseOptionArgs: {
         assert(
           Array.isArray(optionArgs),
-          "Invalid state, must have an array to store option arguments",
+          "Invalid state, must have an array to store option arguments"
         );
         switch (token.kind) {
           case "option-arg":
@@ -286,7 +285,7 @@ export function parse(input: readonly string[], spec: Spec): ParseResult {
               throw new TooFewOptionArguments(
                 optionArgsMin,
                 optionArgsMax,
-                ctx(),
+                ctx()
               );
             }
             parseOption(token);
@@ -305,16 +304,16 @@ export function parse(input: readonly string[], spec: Spec): ParseResult {
               throw new TooFewOptionArguments(
                 optionArgsMin,
                 optionArgsMax,
-                ctx(),
+                ctx()
               );
             }
             parseArgSeparator();
             break;
           }
-          case "subcommand": {
+          case "command": {
             throw new ParseError(ctx(), "Unexpected token");
           }
-          // The analyzer can't output a subcommand here, and if it does
+          // The analyzer can't output a command here, and if it does
           // then that's an error anyway
           default: {
             throw new ParseError(ctx(), "Unreachable");
@@ -325,7 +324,7 @@ export function parse(input: readonly string[], spec: Spec): ParseResult {
       case State.ParseOptionArgRequireSeparator: {
         assert(
           Array.isArray(optionArgs),
-          "Invalid state, must have an array to store option arguments",
+          "Invalid state, must have an array to store option arguments"
         );
         assert(requiredSeparator, "Invalid state, a separator must be set");
         switch (token.kind) {
@@ -336,7 +335,7 @@ export function parse(input: readonly string[], spec: Spec): ParseResult {
             ) {
               throw new ParseError(
                 ctx(),
-                `Incorrect separator, use '${requiredSeparator}' instead of '${token.separator}'`,
+                `Incorrect separator, use '${requiredSeparator}' instead of '${token.separator}'`
               );
             }
             // If this is true, we know thanks to the test suite that
@@ -350,7 +349,7 @@ export function parse(input: readonly string[], spec: Spec): ParseResult {
               throw new TooFewOptionArguments(
                 optionArgsMin,
                 optionArgsMax,
-                ctx(),
+                ctx()
               );
             }
             optionArgs = null;
@@ -363,7 +362,7 @@ export function parse(input: readonly string[], spec: Spec): ParseResult {
               throw new TooFewOptionArguments(
                 optionArgsMin,
                 optionArgsMax,
-                ctx(),
+                ctx()
               );
             }
             parseOption(token);
@@ -375,15 +374,15 @@ export function parse(input: readonly string[], spec: Spec): ParseResult {
           case "arg-separator": {
             throw new ParseError(ctx(), "Unexpected token");
           }
-          case "subcommand": {
+          case "command": {
             if (optionArgsMin > 0) {
               throw new TooFewOptionArguments(
                 optionArgsMin,
                 optionArgsMax,
-                ctx(),
+                ctx()
               );
             }
-            parseSubcommand(token);
+            parseCommand(token);
             state = State.ParseArgs;
             break;
           }
@@ -410,7 +409,7 @@ export function parse(input: readonly string[], spec: Spec): ParseResult {
       if (!foundOptions.has(name)) {
         throw new ParseError(
           ctx(),
-          `${option.name} requires ${name}, add it to fix this error`,
+          `${option.name} requires ${name}, add it to fix this error`
         );
       }
     }
@@ -420,7 +419,7 @@ export function parse(input: readonly string[], spec: Spec): ParseResult {
       if (foundOptions.has(name)) {
         throw new ParseError(
           ctx(),
-          `${option.name} can't be used together with ${name}`,
+          `${option.name} can't be used together with ${name}`
         );
       }
     }

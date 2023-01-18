@@ -4,26 +4,26 @@ import type {
   NonEmptyArray,
   Option,
   SingleOrArray,
-  Subcommand,
+  Command,
 } from "./types.ts";
 import { makeArray, makeArray1 } from "./collections.ts";
 import { closest } from "./deps/fastest_levenshtein.ts";
 
 function getNamed<T extends { name: SingleOrArray<string> }>(
   named: readonly T[],
-  name: string,
+  name: string
 ): T | null {
   return named.find((obj) => makeArray(obj.name).includes(name)) ?? null;
 }
 
 function getParserDirective<
-  Key extends keyof NonNullable<Subcommand["parserDirectives"]>,
+  Key extends keyof NonNullable<Command["parserDirectives"]>
 >(
-  path: readonly Subcommand[],
-  key: Key,
-): NonNullable<Subcommand["parserDirectives"]>[Key] | undefined {
+  path: readonly Command[],
+  key: Key
+): NonNullable<Command["parserDirectives"]>[Key] | undefined {
   return path.findLast(
-    (command) => command.parserDirectives && key in command.parserDirectives,
+    (command) => command.parserDirectives && key in command.parserDirectives
   )?.parserDirectives?.[key];
 }
 
@@ -71,7 +71,7 @@ export interface GetHelpOptions {
  *           : `
  * Usage: fig [command]
  *
- * Command Subcommands:
+ * Command Commands:
  *  o  doctor      Check CLI is properly configured
  *  o  settings    Customize appearance and behavior
  *  o  issue       Create a new GitHub issue
@@ -84,8 +84,8 @@ export interface GetHelpOptions {
  * ```
  */
 export function getHelp(
-  path: NonEmptyArray<Subcommand>,
-  options: GetHelpOptions = {},
+  path: NonEmptyArray<Command>,
+  options: GetHelpOptions = {}
 ): string {
   const { description = true, usage = true, didYouMean } = options;
   const sections = getSections(path);
@@ -94,7 +94,7 @@ export function getHelp(
       didYouMean.input,
       // The `closest` function actually takes a `readonly string[]` but it
       // isn't typed correctly
-      didYouMean.choices as string[],
+      didYouMean.choices as string[]
     );
   }
   if (!description) {
@@ -109,7 +109,7 @@ export function getHelp(
 /**
  * An action that prints the help message, then exits
  *
- * This is intended to be used for commands where a subcommand _must_ be
+ * This is intended to be used for commands where a command _must_ be
  * provided. Usually this will be the root command, such as `git`.
  *
  * ## Example
@@ -136,18 +136,16 @@ export const usage: Action = ({ path, args: [command], error, help }) => {
 
   if (command === "") {
     error(
-      `Expected a command, but the value was empty\n\n${
-        help({
-          description: false,
-        })
-      }`,
+      `Expected a command, but the value was empty\n\n${help({
+        description: false,
+      })}`
     );
     return 1;
   }
 
   // If this command was invoked with any value for `command`,
   // that's an error because the user was intending to run a
-  // subcommand.
+  // command.
 
   const subcommands = path
     .at(-1)
@@ -157,60 +155,52 @@ export const usage: Action = ({ path, args: [command], error, help }) => {
   if (subcommands && subcommands.length > 0) {
     const matchPrefix = getParserDirective(
       path,
-      "subcommandsMatchUniquePrefix",
+      "subcommandsMatchUniquePrefix"
     );
     if (matchPrefix) {
       const possible = subcommands.filter((name) => name.startsWith(command));
 
       // There could be zero matches if the given command name wasn't the prefix
-      // of a subcommand. In this case, show the generic 'unknown' message
+      // of a command. In this case, show the generic 'unknown' message
       // instead of the more specific 'ambiguous' message
       if (possible.length > 0) {
         error(
-          `Ambiguous command '${command}', could be: ${
-            possible.join(
-              ", ",
-            )
-          }\n\n${
-            help({
-              description: false,
-            })
-          }`,
+          `Ambiguous command '${command}', could be: ${possible.join(
+            ", "
+          )}\n\n${help({
+            description: false,
+          })}`
         );
         return 1;
       }
     }
 
     error(
-      `Unknown command '${command}'\n\n${
-        help({
-          description: false,
-          didYouMean: {
-            input: command,
-            choices: subcommands,
-          },
-        })
-      }`,
+      `Unknown command '${command}'\n\n${help({
+        description: false,
+        didYouMean: {
+          input: command,
+          choices: subcommands,
+        },
+      })}`
     );
     return 1;
   }
   // This case is possible when there are subcommands but
   // they're all hidden.
   error(
-    `Unknown command '${command}'\n\n${
-      help({
-        description: false,
-      })
-    }`,
+    `Unknown command '${command}'\n\n${help({
+      description: false,
+    })}`
   );
 
   return 1;
 };
 
 /**
- * A subcommand that will print help text and then exit
+ * A command that will print help text and then exit
  *
- * This subcommand takes an optional argument, which is the command
+ * This command takes an optional argument, which is the command
  * to get help for. This must be the name of a command on this command's
  * parent. If the argument isn't provided, a help message for the parent
  * will be printed to stdout.
@@ -227,7 +217,7 @@ export const usage: Action = ({ path, args: [command], error, help }) => {
  * };
  * ```
  */
-export const helpCommand: Subcommand = {
+export const helpCommand: Command = {
   name: "help",
   description: "Print a help message",
   args: {
@@ -236,20 +226,20 @@ export const helpCommand: Subcommand = {
   },
   action({ path, args: [commandName], error, help }) {
     // This is guaranteed to have at least one element in it
-    const helpRoot = path.slice(0, -1) as unknown as NonEmptyArray<Subcommand>;
+    const helpRoot = path.slice(0, -1) as unknown as NonEmptyArray<Command>;
 
-    // If there's no subcommand to get help for, get help for the parent
+    // If there's no command to get help for, get help for the parent
     // of this command.
     if (!commandName) {
       console.log(
         help({
           path: helpRoot,
-        }),
+        })
       );
       return 0;
     }
 
-    // Looking up the subcommand can fail in two main ways:
+    // Looking up the command can fail in two main ways:
     // 1. There are no subcommands
     // 2. There are no subcommands with that name
 
@@ -260,17 +250,15 @@ export const helpCommand: Subcommand = {
 
     if (!parent.subcommands || parent.subcommands.length === 1) {
       error(
-        `No subcommands, try using 'help' with nothing after it\n\n${
-          help({
-            description: false,
-            path: helpRoot,
-          })
-        }`,
+        `No subcommands, try using 'help' with nothing after it\n\n${help({
+          description: false,
+          path: helpRoot,
+        })}`
       );
       return 1;
     }
 
-    // If the user messed up the name of the subcommand, this is the part that can fail.
+    // If the user messed up the name of the command, this is the part that can fail.
     const command = getNamed(parent.subcommands, commandName);
     if (!command) {
       // The error message will be different depending on whether there
@@ -283,25 +271,21 @@ export const helpCommand: Subcommand = {
       // gives the user a clear indication of how the issue can be resolved.
       if (subcommands.length > 0) {
         error(
-          `There is no subcommand named '${commandName}'\n\n${
-            help({
-              path: helpRoot,
-              didYouMean: {
-                input: commandName,
-                choices: subcommands,
-              },
-            })
-          }`,
+          `There is no command named '${commandName}'\n\n${help({
+            path: helpRoot,
+            didYouMean: {
+              input: commandName,
+              choices: subcommands,
+            },
+          })}`
         );
         return 1;
       } else {
         error(
-          `There is no subcommand named '${commandName}'\n\n${
-            help({
-              description: false,
-              path: helpRoot,
-            })
-          }`,
+          `There is no command named '${commandName}'\n\n${help({
+            description: false,
+            path: helpRoot,
+          })}`
         );
         return 1;
       }
@@ -309,11 +293,11 @@ export const helpCommand: Subcommand = {
 
     // Everything went smoothly, the lookup succeeded. To build the
     // correct path, take every command until *before* this help command
-    // (which is guaranteed to be at -1), then concat with the subcommand.
+    // (which is guaranteed to be at -1), then concat with the command.
     console.log(
       help({
         path: [...helpRoot, command],
-      }),
+      })
     );
   },
 };
@@ -359,7 +343,7 @@ type HelpSections = {
   subcommands: [formattedName: string, description: string][];
 };
 
-function getSubcommandPathString(commands: NonEmptyArray<Subcommand>): string {
+function getCommandPathString(commands: NonEmptyArray<Command>): string {
   return commands
     .map((command) => getLongestString(makeArray1(command.name)))
     .join(" ");
@@ -369,7 +353,7 @@ function nonNullable<T>(value: T): value is NonNullable<T> {
   return value !== null && value !== undefined;
 }
 
-function getSections(commands: NonEmptyArray<Subcommand>): HelpSections {
+function getSections(commands: NonEmptyArray<Command>): HelpSections {
   const command = commands[commands.length - 1];
 
   const description = command.description;
@@ -377,13 +361,13 @@ function getSections(commands: NonEmptyArray<Subcommand>): HelpSections {
 
   const subcommands: HelpSections["subcommands"] = command.subcommands
     ? command.subcommands
-      .filter((subcommand) => !subcommand.hidden)
-      .map((subcommand) => [
-        makeArray1(subcommand.name)
-          .sort((a, b) => a.length - b.length)
-          .join(", "),
-        subcommand.description ?? defaultDesc,
-      ])
+        .filter((command) => !command.hidden)
+        .map((command) => [
+          makeArray1(command.name)
+            .sort((a, b) => a.length - b.length)
+            .join(", "),
+          command.description ?? defaultDesc,
+        ])
     : [];
 
   let persistentOptionObjects: Option[] = [];
@@ -415,7 +399,7 @@ function getSections(commands: NonEmptyArray<Subcommand>): HelpSections {
     ]);
 
     optionObjects = (command.options ?? []).filter(
-      (option) => !option.hidden && !option.isPersistent,
+      (option) => !option.hidden && !option.isPersistent
     );
 
     options = optionObjects.map((option) => [
@@ -426,7 +410,7 @@ function getSections(commands: NonEmptyArray<Subcommand>): HelpSections {
 
   const usage = (() => {
     const parts = [];
-    parts.push(getSubcommandPathString(commands));
+    parts.push(getCommandPathString(commands));
     const required = [
       ...optionObjects.filter((option) => option.isRequired),
       ...persistentOptionObjects.filter((option) => option.isRequired),
@@ -439,7 +423,7 @@ function getSections(commands: NonEmptyArray<Subcommand>): HelpSections {
     if (options.length || persistentOptions.length) {
       parts.push("[flags]");
     }
-    if (command.requiresSubcommand) {
+    if (command.requiresCommand) {
       parts.push("<command>");
     } else {
       const args = makeArray(command.args);
@@ -478,21 +462,21 @@ export function formatHelpSections(sections: HelpSections): string {
 
   const longestOptionName = Math.max(
     ...sections.options.map(([name]) => name.length),
-    ...sections.persistentOptions.map(([name]) => name.length),
+    ...sections.persistentOptions.map(([name]) => name.length)
   );
   const minSpacingBetweenNameAndDesc = 2;
 
   const formatOptions = (options: [string, string][]) => {
     const lines = [];
-    const newline = indent +
-      " ".repeat(longestOptionName + minSpacingBetweenNameAndDesc);
+    const newline =
+      indent + " ".repeat(longestOptionName + minSpacingBetweenNameAndDesc);
     for (const [name, desc] of options) {
       const spaces = " ".repeat(
-        longestOptionName - name.length + minSpacingBetweenNameAndDesc,
+        longestOptionName - name.length + minSpacingBetweenNameAndDesc
       );
       const [head, ...tail] = desc.split("\n");
       const description = [head, ...tail.map((line) => newline + line)].join(
-        "\n",
+        "\n"
       );
       lines.push(`${indent}${name}${spaces}${description}`);
     }
@@ -502,17 +486,17 @@ export function formatHelpSections(sections: HelpSections): string {
   if (sections.subcommands.length > 0) {
     const lines = ["Commands:"];
     const longestName = Math.max(
-      ...sections.subcommands.map(([name]) => name.length),
+      ...sections.subcommands.map(([name]) => name.length)
     );
-    const newline = indent +
-      " ".repeat(longestName + minSpacingBetweenNameAndDesc);
+    const newline =
+      indent + " ".repeat(longestName + minSpacingBetweenNameAndDesc);
     for (const [name, desc] of sections.subcommands) {
       const spaces = " ".repeat(
-        longestName - name.length + minSpacingBetweenNameAndDesc,
+        longestName - name.length + minSpacingBetweenNameAndDesc
       );
       const [head, ...tail] = desc.split("\n\n")[0].split("\n");
       const description = [head, ...tail.map((line) => newline + line)].join(
-        "\n",
+        "\n"
       );
       lines.push(`${indent}${name}${spaces}${description}`);
     }
@@ -557,9 +541,8 @@ export function optionToString(option: Option): string {
   }
 
   if (option.requiresSeparator) {
-    const separator = option.requiresSeparator === true
-      ? "="
-      : option.requiresSeparator;
+    const separator =
+      option.requiresSeparator === true ? "=" : option.requiresSeparator;
     if (optArgs[0].isOptional) {
       return `${name}[${separator}${optArgs[0].name || "argument"}]`;
     } else {

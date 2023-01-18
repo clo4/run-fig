@@ -4,7 +4,7 @@
  * @module
  */
 
-import { Arg, Option, SingleOrArray, Subcommand } from "./types.ts";
+import { Arg, Option, SingleOrArray, Command } from "./types.ts";
 import { isArray, makeArray } from "./collections.ts";
 import { assert, getMaxArgs, getMinArgs } from "./parse.ts";
 
@@ -18,30 +18,30 @@ const repr = JSON.stringify;
  * This will convert single args to an array with one item.
  */
 function forEachArgArray(
-  spec: Subcommand,
-  fn: (args: Arg[], path: Subcommand[]) => void,
-  path: Subcommand[] = [],
+  spec: Command,
+  fn: (args: Arg[], path: Command[]) => void,
+  path: Command[] = []
 ): void {
   path = path.concat(spec);
   fn(makeArray(spec.args), path);
   for (const option of makeArray(spec.options)) {
     fn(makeArray(option.args), path);
   }
-  for (const subcommand of makeArray(spec.subcommands)) {
-    forEachArgArray(subcommand, fn, path);
+  for (const command of makeArray(spec.subcommands)) {
+    forEachArgArray(command, fn, path);
   }
 }
 
 /** Run a function once for each `options` property in the spec (recursive) */
 function forEachOptionArray(
-  spec: Subcommand,
-  fn: (options: Option[], path: Subcommand[]) => void,
-  path: Subcommand[] = [],
+  spec: Command,
+  fn: (options: Option[], path: Command[]) => void,
+  path: Command[] = []
 ): void {
   path = path.concat(spec);
   fn(makeArray(spec.options), path);
-  for (const subcommand of makeArray(spec.subcommands)) {
-    forEachOptionArray(subcommand, fn, path);
+  for (const command of makeArray(spec.subcommands)) {
+    forEachOptionArray(command, fn, path);
   }
 }
 
@@ -50,15 +50,15 @@ function forEachOptionArray(
  *
  * This will also run the function for the root spec itself.
  */
-function forEachSubcommand(
-  spec: Subcommand,
-  fn: (spec: Subcommand, path: Subcommand[]) => void,
-  path: Subcommand[] = [],
+function forEachCommand(
+  spec: Command,
+  fn: (spec: Command, path: Command[]) => void,
+  path: Command[] = []
 ): void {
   path = path.concat(spec);
   fn(spec, path);
-  for (const subcommand of makeArray(spec.subcommands)) {
-    forEachSubcommand(subcommand, fn, path);
+  for (const command of makeArray(spec.subcommands)) {
+    forEachCommand(command, fn, path);
   }
 }
 
@@ -75,7 +75,7 @@ function namedArrayToString(...parts: { name: SingleOrArray<string> }[]) {
 
 /** Asserts that required arguments do not come after an optional argument */
 export function assertRequiredArgumentsDoNotFollowOptionalArguments(
-  spec: Subcommand,
+  spec: Command
 ): void {
   forEachArgArray(spec, (args, path) => {
     let remainingMustBeOptional = false;
@@ -98,7 +98,7 @@ export function assertRequiredArgumentsDoNotFollowOptionalArguments(
 }
 
 /** Asserts that options with `isRepeatable: true` don't have arguments */
-export function assertRepeatableOptionsHaveNoArguments(spec: Subcommand): void {
+export function assertRepeatableOptionsHaveNoArguments(spec: Command): void {
   forEachOptionArray(spec, (options, path) => {
     for (const [index, option] of options.entries()) {
       // deno-fmt-ignore
@@ -115,7 +115,7 @@ export function assertRepeatableOptionsHaveNoArguments(spec: Subcommand): void {
 
 /** Asserts that `isRepeatable` is only assigned a positive integer */
 export function assertRepeatableOptionsArePositiveIntegers(
-  spec: Subcommand,
+  spec: Command
 ): void {
   forEachOptionArray(spec, (options, path) => {
     for (const [index, option] of options.entries()) {
@@ -150,8 +150,8 @@ export function assertRepeatableOptionsArePositiveIntegers(
 }
 
 /** Asserts that options have unique names in their scope */
-export function assertOptionsHaveLocallyUniqueNames(spec: Subcommand): void {
-  forEachSubcommand(spec, (spec, path) => {
+export function assertOptionsHaveLocallyUniqueNames(spec: Command): void {
+  forEachCommand(spec, (spec, path) => {
     const optionNames = new Set<string>();
     for (const [index, option] of makeArray(spec.options).entries()) {
       for (const name of makeArray(option.name)) {
@@ -170,20 +170,18 @@ export function assertOptionsHaveLocallyUniqueNames(spec: Subcommand): void {
 }
 
 /** Asserts that options don't shadow a persistent option */
-export function assertOptionsDoNotShadowPersistentOptions(
-  spec: Subcommand,
-): void {
+export function assertOptionsDoNotShadowPersistentOptions(spec: Command): void {
   forEachOptionArray(spec, (options, path) => {
     const persistentOptionNames = new Set(
       path
         .slice(0, -1)
-        .flatMap((subcommand) =>
-          subcommand.options
-            ? subcommand.options
-              .filter((option) => option.isPersistent)
-              .flatMap((option) => option.name)
+        .flatMap((command) =>
+          command.options
+            ? command.options
+                .filter((option) => option.isPersistent)
+                .flatMap((option) => option.name)
             : []
-        ),
+        )
     );
     for (const [index, option] of makeArray(options).entries()) {
       for (const name of makeArray(option.name)) {
@@ -202,23 +200,21 @@ export function assertOptionsDoNotShadowPersistentOptions(
   });
 }
 
-/** Asserts that subcommands don't share a name with a sibling subcommand */
-export function assertSubcommandsHaveLocallyUniqueNames(
-  spec: Subcommand,
-): void {
-  forEachSubcommand(spec, (spec, path) => {
+/** Asserts that subcommands don't share a name with a sibling command */
+export function assertCommandsHaveLocallyUniqueNames(spec: Command): void {
+  forEachCommand(spec, (spec, path) => {
     const names = new Set<string>();
-    for (const [index, subcommand] of makeArray(spec.subcommands).entries()) {
-      for (const name of makeArray(subcommand.name)) {
+    for (const [index, command] of makeArray(spec.subcommands).entries()) {
+      for (const name of makeArray(command.name)) {
         // deno-fmt-ignore
         assert(
           !names.has(name),
-          `The subcommand ${namedArrayToString(
+          `The command ${namedArrayToString(
             ...path,
-            subcommand
+            command
           )} (index ${index}) has a non-unique name, ${repr(
             name
-          )}. Subcommand names must be unique among the subcommands in the same array.`
+          )}. Command names must be unique among the subcommands in the same array.`
         );
         names.add(name);
       }
@@ -232,14 +228,15 @@ export function assertSubcommandsHaveLocallyUniqueNames(
  * set on an ancestor command.
  */
 export function assertLongOptionNamesDoNotStartWithSingleDash(
-  spec: Subcommand,
+  spec: Command
 ): void {
   forEachOptionArray(spec, (options, path) => {
     // TODO: check if this is correct
-    const skip = path
-      .map((command) => command.parserDirectives?.flagsArePosixNoncompliant)
-      .filter((value) => value !== undefined)
-      .at(-1) || false;
+    const skip =
+      path
+        .map((command) => command.parserDirectives?.flagsArePosixNoncompliant)
+        .filter((value) => value !== undefined)
+        .at(-1) || false;
 
     if (skip) return;
 
@@ -273,13 +270,14 @@ export function assertLongOptionNamesDoNotStartWithSingleDash(
 /**
  * Asserts that all option names start with dashes
  */
-export function assertOptionNamesStartWithDashes(spec: Subcommand): void {
+export function assertOptionNamesStartWithDashes(spec: Command): void {
   forEachOptionArray(spec, (options, path) => {
     // TODO: check if this is correct
-    const skip = path
-      .map((command) => command.parserDirectives?.flagsArePosixNoncompliant)
-      .filter((value) => value !== undefined)
-      .at(-1) || false;
+    const skip =
+      path
+        .map((command) => command.parserDirectives?.flagsArePosixNoncompliant)
+        .filter((value) => value !== undefined)
+        .at(-1) || false;
 
     if (skip) return;
 
@@ -301,7 +299,7 @@ export function assertOptionNamesStartWithDashes(spec: Subcommand): void {
 /**
  * Asserts that nothing is named exactly '--'
  */
-export function assertNothingIsNamedDashDash(spec: Subcommand): void {
+export function assertNothingIsNamedDashDash(spec: Command): void {
   forEachOptionArray(spec, (options, path) => {
     for (const [index, option] of makeArray(options).entries()) {
       for (const name of makeArray(option.name)) {
@@ -316,15 +314,15 @@ export function assertNothingIsNamedDashDash(spec: Subcommand): void {
       }
     }
   });
-  forEachSubcommand(spec, (subcommands, path) => {
-    for (const [index, subcommand] of makeArray(subcommands).entries()) {
-      for (const name of makeArray(subcommand.name)) {
+  forEachCommand(spec, (subcommands, path) => {
+    for (const [index, command] of makeArray(subcommands).entries()) {
+      for (const name of makeArray(command.name)) {
         // deno-fmt-ignore
         assert(
           name !== "--",
-          `Subcommand ${namedArrayToString(
+          `Command ${namedArrayToString(
             ...path,
-            subcommand
+            command
           )} (index ${index}) is named '--', which is a special instruction to the parser to treat all following tokens as arguments. This will never be matched`
         );
       }
@@ -335,22 +333,20 @@ export function assertNothingIsNamedDashDash(spec: Subcommand): void {
 /**
  * Asserts that no option arg separator is an empty string
  */
-export function assertOptionArgSeparatorsHaveCharacters(
-  spec: Subcommand,
-): void {
+export function assertOptionArgSeparatorsHaveCharacters(spec: Command): void {
   // FIXME: `subcommands` isn't an array
-  forEachSubcommand(spec, (subcommands, path) => {
-    for (const [index, subcommand] of makeArray(subcommands).entries()) {
+  forEachCommand(spec, (subcommands, path) => {
+    for (const [index, command] of makeArray(subcommands).entries()) {
       const separators = makeArray(
-        subcommand.parserDirectives?.optionArgSeparators,
+        command.parserDirectives?.optionArgSeparators
       );
       for (const [sepIndex, separator] of separators.entries()) {
         // deno-fmt-ignore
         assert(
           separator !== "",
-          `Subcommand ${namedArrayToString(
+          `Command ${namedArrayToString(
             ...path,
-            subcommand
+            command
           )} (index ${index}) has an empty string for an option arg separator at index ${sepIndex}. If you wanted to disable option arg separators, use an empty array.`
         );
       }
@@ -361,13 +357,14 @@ export function assertOptionArgSeparatorsHaveCharacters(
 /**
  * Asserts that options named "+" or "-" takes one arg
  */
-export function assertPlusMinusOptionsTakeOneArg(spec: Subcommand): void {
+export function assertPlusMinusOptionsTakeOneArg(spec: Command): void {
   forEachOptionArray(spec, (options, path) => {
     // TODO: check if this is correct
-    const skip = path
-      .map((command) => command.parserDirectives?.flagsArePosixNoncompliant)
-      .filter((value) => value !== undefined)
-      .at(-1) || false;
+    const skip =
+      path
+        .map((command) => command.parserDirectives?.flagsArePosixNoncompliant)
+        .filter((value) => value !== undefined)
+        .at(-1) || false;
 
     if (skip) return;
 
@@ -392,7 +389,7 @@ export function assertPlusMinusOptionsTakeOneArg(spec: Subcommand): void {
 /**
  * Asserts that names do not have leading or trailing whitespace
  */
-export function assertNamesHaveNoExtraWhitespace(spec: Subcommand): void {
+export function assertNamesHaveNoExtraWhitespace(spec: Command): void {
   forEachOptionArray(spec, (options, path) => {
     for (const [index, option] of makeArray(options).entries()) {
       for (const name of makeArray(option.name)) {
@@ -408,15 +405,15 @@ export function assertNamesHaveNoExtraWhitespace(spec: Subcommand): void {
     }
   });
   // FIXME: `subcommands` isn't an array
-  forEachSubcommand(spec, (subcommands, path) => {
-    for (const [index, subcommand] of makeArray(subcommands).entries()) {
-      for (const name of makeArray(subcommand.name)) {
+  forEachCommand(spec, (subcommands, path) => {
+    for (const [index, command] of makeArray(subcommands).entries()) {
+      for (const name of makeArray(command.name)) {
         // deno-fmt-ignore
         assert(
           name === name.trim(),
-          `Subcommand ${namedArrayToString(
+          `Command ${namedArrayToString(
             ...path,
-            subcommand
+            command
           )} (index ${index}) has a name with extra whitespace`
         );
       }
@@ -440,7 +437,7 @@ export function assertNamesHaveNoExtraWhitespace(spec: Subcommand): void {
 /**
  * Asserts that everything has a description
  */
-export function assertEverythingHasDescription(spec: Subcommand): void {
+export function assertEverythingHasDescription(spec: Command): void {
   assert(spec.description, `Spec has no description`);
   forEachOptionArray(spec, (options, path) => {
     for (const [index, option] of makeArray(options).entries()) {
@@ -455,14 +452,14 @@ export function assertEverythingHasDescription(spec: Subcommand): void {
     }
   });
   // FIXME: `subcommands` isn't an array
-  forEachSubcommand(spec, (subcommands, path) => {
-    for (const [index, subcommand] of makeArray(subcommands).entries()) {
+  forEachCommand(spec, (subcommands, path) => {
+    for (const [index, command] of makeArray(subcommands).entries()) {
       // deno-fmt-ignore
       assert(
-        subcommand.description,
-        `Subcommand ${namedArrayToString(
+        command.description,
+        `Command ${namedArrayToString(
           ...path,
-          subcommand
+          command
         )} (index ${index}) has no description`
       );
     }
@@ -472,7 +469,7 @@ export function assertEverythingHasDescription(spec: Subcommand): void {
 /**
  * Asserts that descriptions have line length < 69
  */
-export function assertDescriptionLineLengthUnder69(spec: Subcommand): void {
+export function assertDescriptionLineLengthUnder69(spec: Command): void {
   if (spec.description) {
     // deno-fmt-ignore
     assert(
@@ -495,15 +492,15 @@ export function assertDescriptionLineLengthUnder69(spec: Subcommand): void {
     }
   });
   // FIXME: `subcommands` isn't an array
-  forEachSubcommand(spec, (subcommands, path) => {
-    for (const [index, subcommand] of makeArray(subcommands).entries()) {
-      if (subcommand.description) {
+  forEachCommand(spec, (subcommands, path) => {
+    for (const [index, command] of makeArray(subcommands).entries()) {
+      if (command.description) {
         // deno-fmt-ignore
         assert(
-          subcommand.description.split("\n").every((line) => line.length <= 68),
-          `Subcommand ${namedArrayToString(
+          command.description.split("\n").every((line) => line.length <= 68),
+          `Command ${namedArrayToString(
             ...path,
-            subcommand
+            command
           )} (index ${index}) has a description line over 68 characters`
         );
       }
@@ -511,7 +508,7 @@ export function assertDescriptionLineLengthUnder69(spec: Subcommand): void {
   });
 }
 
-export function assertRequiresSeparatorTakesOneArg(spec: Subcommand): void {
+export function assertRequiresSeparatorTakesOneArg(spec: Command): void {
   forEachOptionArray(spec, (options, path) => {
     for (const [index, option] of makeArray(options).entries()) {
       if (option.requiresSeparator) {
@@ -541,10 +538,10 @@ export function assertRequiresSeparatorTakesOneArg(spec: Subcommand): void {
   });
 }
 
-export function assertCommonOptionsArePersistent(spec: Subcommand): void {
+export function assertCommonOptionsArePersistent(spec: Command): void {
   const isSameName = (
     a: string | readonly string[],
-    b: string | readonly string[],
+    b: string | readonly string[]
   ) => {
     if (isArray(a) && isArray(b)) {
       return (
@@ -557,15 +554,15 @@ export function assertCommonOptionsArePersistent(spec: Subcommand): void {
     return a === b;
   };
   const failures: [string | readonly string[], string][] = [];
-  forEachSubcommand(spec, (subcommand, path) => {
-    if (!subcommand.subcommands) {
+  forEachCommand(spec, (command, path) => {
+    if (!command.subcommands) {
       return;
     }
-    for (const option of makeArray(subcommand.options)) {
-      const allChildSubcommands: Subcommand[] = [];
-      forEachSubcommand(subcommand, (cmd) => allChildSubcommands.push(cmd));
+    for (const option of makeArray(command.options)) {
+      const allChildCommands: Command[] = [];
+      forEachCommand(command, (cmd) => allChildCommands.push(cmd));
 
-      const allShareOption = allChildSubcommands.every((cmd) =>
+      const allShareOption = allChildCommands.every((cmd) =>
         makeArray(cmd.options).some((o) => isSameName(option.name, o.name))
       );
 
@@ -581,7 +578,7 @@ export function assertCommonOptionsArePersistent(spec: Subcommand): void {
     failures.length === 0,
     `The following options were also defined by all subcommands. Instead, define the option once, and use \`isPersistent: true\` to persist it across all subcommands.
 ${failures.map(([_, line]) => " * " + line).join("\n")}
-`,
+`
   );
 }
 
@@ -589,16 +586,16 @@ ${failures.map(([_, line]) => " * " + line).join("\n")}
  * Asserts that references to other options by name actually refer to options
  * that exist in scope
  */
-export function assertOptionNameReferencesExist(spec: Subcommand): void {
+export function assertOptionNameReferencesExist(spec: Command): void {
   forEachOptionArray(spec, (options, path) => {
     const optionNames = new Set([
       ...path
         .slice(0, -1)
-        .flatMap((subcommand) =>
-          subcommand.options
-            ? subcommand.options
-              .filter((option) => option.isPersistent)
-              .flatMap((option) => option.name)
+        .flatMap((command) =>
+          command.options
+            ? command.options
+                .filter((option) => option.isPersistent)
+                .flatMap((option) => option.name)
             : []
         ),
       ...options.flatMap((option) => option.name),
@@ -635,26 +632,23 @@ export function assertOptionNameReferencesExist(spec: Subcommand): void {
 /**
  * Asserts that commands that will match subcommands by prefix do not take arguments
  */
-export function assertPrefixMatchCommandsHaveNoArguments(
-  spec: Subcommand,
-): void {
-  forEachSubcommand(spec, (subcommand, path) => {
+export function assertPrefixMatchCommandsHaveNoArguments(spec: Command): void {
+  forEachCommand(spec, (command, path) => {
     // Skip if the final parser directive in the chain is false
     // TODO: this could probably be a utility function, `isParserDirectiveOn`
-    const skip = path
-      .map((cmd) => cmd.parserDirectives?.subcommandsMatchUniquePrefix)
-      .filter((value) => value !== undefined)
-      .at(-1) === false;
+    const skip =
+      path
+        .map((cmd) => cmd.parserDirectives?.subcommandsMatchUniquePrefix)
+        .filter((value) => value !== undefined)
+        .at(-1) === false;
 
     if (skip) return;
 
     assert(
-      !(subcommand.subcommands && subcommand.args),
-      `The command ${
-        namedArrayToString(
-          ...path,
-        )
-      } has at least one argument and subcommand, but matches subcommands based on unique prefixes. To fix this, use \`parserDirectives: { subcommandsMatchUniquePrefix: false }\``,
+      !(command.subcommands && command.args),
+      `The command ${namedArrayToString(
+        ...path
+      )} has at least one argument and command, but matches subcommands based on unique prefixes. To fix this, use \`parserDirectives: { subcommandsMatchUniquePrefix: false }\``
     );
   });
 }
@@ -667,7 +661,7 @@ export interface TestOptions {
    * Allows options to shadow persistent options.
    *
    * This behavior may be desirable if you want to override an option on a
-   * particular subcommand, but not for others.
+   * particular command, but not for others.
    *
    * Be aware that this is not idiomatic.
    */
@@ -688,9 +682,9 @@ export interface TestOptions {
    *
    * This is not allowed by default because it's probably a mistake. It makes
    * arguments ambiguous, users may not know if their invocation will run a
-   * subcommand or the command.
+   * command or the command.
    */
-  allowMatchingSubcommandPrefixAndArgs?: boolean;
+  allowMatchingCommandPrefixAndArgs?: boolean;
 
   /**
    * Change the naming style of the tests.
@@ -703,7 +697,7 @@ export interface TestOptions {
 
 function getName(
   namingStyle: TestNamingStyle,
-  names: { [K in TestNamingStyle]: string },
+  names: { [K in TestNamingStyle]: string }
 ) {
   return names[namingStyle];
 }
@@ -716,14 +710,14 @@ function getName(
  * wrong.
  */
 export function test(
-  spec: Subcommand,
-  options: TestOptions = {},
+  spec: Command,
+  options: TestOptions = {}
 ): (t: Deno.TestContext) => Promise<void> {
   const {
     allowShadowingPersistentOptions = false,
     allowNoDescription = false,
     allowLongDescriptionLines = false,
-    allowMatchingSubcommandPrefixAndArgs = false,
+    allowMatchingCommandPrefixAndArgs = false,
     namingStyle = "sentence",
   } = options;
   return async (t) => {
@@ -734,7 +728,7 @@ export function test(
       }),
       () => {
         assertRequiredArgumentsDoNotFollowOptionalArguments(spec);
-      },
+      }
     );
     await t.step(
       getName(namingStyle, {
@@ -743,7 +737,7 @@ export function test(
       }),
       () => {
         assertRepeatableOptionsHaveNoArguments(spec);
-      },
+      }
     );
     await t.step(
       getName(namingStyle, {
@@ -753,7 +747,7 @@ export function test(
       }),
       () => {
         assertRepeatableOptionsArePositiveIntegers(spec);
-      },
+      }
     );
     await t.step(
       getName(namingStyle, {
@@ -762,7 +756,7 @@ export function test(
       }),
       () => {
         assertLongOptionNamesDoNotStartWithSingleDash(spec);
-      },
+      }
     );
     await t.step(
       getName(namingStyle, {
@@ -771,7 +765,7 @@ export function test(
       }),
       () => {
         assertOptionNamesStartWithDashes(spec);
-      },
+      }
     );
     await t.step(
       getName(namingStyle, {
@@ -780,7 +774,7 @@ export function test(
       }),
       () => {
         assertOptionsHaveLocallyUniqueNames(spec);
-      },
+      }
     );
     if (!allowShadowingPersistentOptions) {
       await t.step(
@@ -790,17 +784,17 @@ export function test(
         }),
         () => {
           assertOptionsDoNotShadowPersistentOptions(spec);
-        },
+        }
       );
     }
     await t.step(
       getName(namingStyle, {
-        sentence: "Subcommands have locally unique names",
-        function: "assertSubcommandsHaveLocallyUniqueNames",
+        sentence: "Commands have locally unique names",
+        function: "assertCommandsHaveLocallyUniqueNames",
       }),
       () => {
-        assertSubcommandsHaveLocallyUniqueNames(spec);
-      },
+        assertCommandsHaveLocallyUniqueNames(spec);
+      }
     );
     await t.step(
       getName(namingStyle, {
@@ -809,7 +803,7 @@ export function test(
       }),
       () => {
         assertNothingIsNamedDashDash(spec);
-      },
+      }
     );
     await t.step(
       getName(namingStyle, {
@@ -818,7 +812,7 @@ export function test(
       }),
       () => {
         assertOptionArgSeparatorsHaveCharacters(spec);
-      },
+      }
     );
     await t.step(
       getName(namingStyle, {
@@ -827,7 +821,7 @@ export function test(
       }),
       () => {
         assertPlusMinusOptionsTakeOneArg(spec);
-      },
+      }
     );
     await t.step(
       getName(namingStyle, {
@@ -836,7 +830,7 @@ export function test(
       }),
       () => {
         assertNamesHaveNoExtraWhitespace(spec);
-      },
+      }
     );
     if (!allowNoDescription) {
       await t.step(
@@ -846,7 +840,7 @@ export function test(
         }),
         () => {
           assertEverythingHasDescription(spec);
-        },
+        }
       );
     }
     if (!allowLongDescriptionLines) {
@@ -858,7 +852,7 @@ export function test(
         }),
         () => {
           assertDescriptionLineLengthUnder69(spec);
-        },
+        }
       );
     }
     await t.step(
@@ -868,16 +862,16 @@ export function test(
       }),
       () => {
         assertRequiresSeparatorTakesOneArg(spec);
-      },
+      }
     );
     await t.step(
       getName(namingStyle, {
-        sentence: "Common options are not defined on every subcommand",
+        sentence: "Common options are not defined on every command",
         function: "assertCommonOptionsArePersistent",
       }),
       () => {
         assertCommonOptionsArePersistent(spec);
-      },
+      }
     );
     await t.step(
       getName(namingStyle, {
@@ -886,9 +880,9 @@ export function test(
       }),
       () => {
         assertOptionNameReferencesExist(spec);
-      },
+      }
     );
-    if (!allowMatchingSubcommandPrefixAndArgs) {
+    if (!allowMatchingCommandPrefixAndArgs) {
       await t.step(
         getName(namingStyle, {
           sentence:
@@ -897,7 +891,7 @@ export function test(
         }),
         () => {
           assertPrefixMatchCommandsHaveNoArguments(spec);
-        },
+        }
       );
     }
   };
