@@ -483,8 +483,28 @@ function generateHelpString(
 
   const indent = "  ";
   const deepIndent = indent.repeat(2);
+  const minSpaceBetweenColumns = 2;
 
-  const longestOptionName = "";
+  // People are irrationally afraid of code duplication but if it's not causing a problem
+  // and doesn't make maintaining it harder then it's really not an issue.
+  // Basically I'm saying that if you see this and think "hmmm, I should refactor it"
+  // then maybe assess your priorities. You're clearly smart, so use that brain power
+  // on things that matter!
+  let longestOptionName = 0;
+  for (const option of normalOptions) {
+    const names = makeArray1(option.name);
+    const longest = Math.max(...names.map((name) => name.length));
+    if (longest > longestOptionName) {
+      longestOptionName = longest;
+    }
+  }
+  for (const option of persistentOptions) {
+    const names = makeArray1(option.name);
+    const longest = Math.max(...names.map((name) => name.length));
+    if (longest > longestOptionName) {
+      longestOptionName = longest;
+    }
+  }
 
   return "";
 }

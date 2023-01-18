@@ -1,1 +1,5 @@
 - refactor help
+
+- remove unsound [T, ...T[]]
+  - This can be mutated, allowing you to remove elements which means this can
+    really have any number of values, including 0
