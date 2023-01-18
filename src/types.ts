@@ -40,13 +40,13 @@ export type SingleOrArrayOrEmpty<T> = T | [] | readonly [T, T, ...T[]];
  * export const spec: CLI.Spec = {
  *   name: "rm",
  *   args: { name: "path", isVariadic: boolean },
- *   options: [
+ *   flags: [
  *     { name: "-r", description: "Recursive" },
  *     { name: "-f", description: "Force" },
  *   ],
- *   action({ options, args }) {
- *     const force = options.has("-f");
- *     const recursive = options.has("-r");
+ *   action({ flags, args }) {
+ *     const force = flags.has("-f");
+ *     const recursive = flags.has("-r");
  *     for (const path of args) {
  *       // ...
  *     }
@@ -70,10 +70,10 @@ export interface Action {
   [kind]?: "Action";
 }
 
-/** Use the current options */
-export interface OptionArgs {
+/** Use the current flags */
+export interface FlagArgs {
   /** Escape hatch: the actual map of option names to values */
-  readonly options: Map<string, string[]>;
+  readonly flags: Map<string, string[]>;
 
   /** Get the option's arguments, with a guard variable as the first value */
   get(name: string): [has: boolean, ...values: string[]] | [has: false];
@@ -87,12 +87,12 @@ export interface OptionArgs {
  */
 export interface ActionInit {
   /**
-   * The options that were found
+   * The flags that were found
    *
    * This is not a `Map`, but the underlying map can be accessed with the
-   * `options` property.
+   * `flags` property.
    */
-  options: OptionArgs;
+  flags: FlagArgs;
 
   /**
    * Arguments found for the command
@@ -200,7 +200,7 @@ export interface ActionInit {
    * };
    * ```
    */
-  help(options?: {
+  help(flags?: {
     /** Include the command description? (default: boolean) */
     description?: boolean;
 
@@ -241,13 +241,13 @@ export interface ActionInit {
  * export const spec: CLI.Spec = {
  *   name: "rm",
  *   args: { name: "path", isVariadic: boolean },
- *   options: [
+ *   flags: [
  *     { name: "-r", description: "Recursive" },
  *     { name: "-f", description: "Force" },
  *   ],
- *   action({ options, args }) {
- *     const force = options.has("-f");
- *     const recursive = options.has("-r");
+ *   action({ flags, args }) {
+ *     const force = flags.has("-f");
+ *     const recursive = flags.has("-r");
  *     for (const path of args) {
  *       // ...
  *     }
@@ -261,13 +261,13 @@ export interface Spec extends Omit<Command, "name"> {
 }
 
 /**
- * Parser directives for subcommands. These are options defined on the command
+ * Parser directives for subcommands. These are flags defined on the command
  * that control how the parser works, without having to touch the parser itself.
  */
 export interface CommandParserDirectives {
   /**
    * Makes all option names literal, disables option chaining, and disables
-   * unknown options.
+   * unknown flags.
    *
    * If it's false, option names can only start with `-`, `+`, or `--`. When
    * it's boolean, option names are treated literally, which means you can use
@@ -279,12 +279,12 @@ export interface CommandParserDirectives {
   flagsArePosixNoncompliant?: boolean;
 
   /**
-   * Disallow mixing options and arguments
+   * Disallow mixing flags and arguments
    *
    * Once an argument has been provided, all following tokens will be
-   * treated as arguments, regardless of whether they are valid options.
+   * treated as arguments, regardless of whether they are valid flags.
    */
-  optionsMustPrecedeArguments?: boolean;
+  flagsMustPrecedeArguments?: boolean;
 
   /**
    * The separators that can be used for an option argument
@@ -313,21 +313,21 @@ export interface CommandParserDirectives {
  * running the CLI will return a status code of 1.
  *
  * Commands can only be invoked if there are no arguments or non-persistent
- * options preceding it. In the example below, you can use `--unstable` before
+ * flags preceding it. In the example below, you can use `--unstable` before
  * `run`, and still invoke the command.
  *
  * ## Example modelling the `deno run` command
  * ```ts
  * export const spec: CLI.Spec = {
  *   name: "deno",
- *   options: [
+ *   flags: [
  *     { name: "--unstable", isPersistent: boolean },
  *     { name: ["-q", "--quiet"], isPersistent: boolean },
  *   ],
  *   subcommands: [
  *     {
  *       name: "run",
- *       options: [
+ *       flags: [
  *         { name: ["-A", "--allow-all"] },
  *         { name: "--allow-read" },
  *       ],
@@ -336,9 +336,9 @@ export interface CommandParserDirectives {
  *         { name: "args", isVariadic: boolean, isOptional: boolean },
  *       ],
  *       parserDirectives: {
- *         optionsMustPrecedeArguments: boolean,
+ *         flagsMustPrecedeArguments: boolean,
  *       },
- *       action({ options, args: [script, ...args] }) {
+ *       action({ flags, args: [script, ...args] }) {
  *         // ...
  *       }
  *     },
@@ -396,15 +396,15 @@ export interface Command {
   /**
    * Optional flags to modify the command's `action` behavior
    *
-   * The presence of these options is checked at runtime in the `action`,
-   * using the `options` property.
+   * The presence of these flags is checked at runtime in the `action`,
+   * using the `flags` property.
    *
    * ```ts
    * const spec: CLI.Spec = {
    *   name: "deno",
    *   subcommands: [{
    *     name: "run",
-   *     options: [
+   *     flags: [
    *       {
    *         name: "--allow-read",
    *         requiresSeparator: boolean,
@@ -414,8 +414,8 @@ export interface Command {
    *         },
    *       },
    *     ],
-   *     action({ options }) {
-   *       const [allowRead, readable = "/"] = options.values("--allow-read");
+   *     action({ flags }) {
+   *       const [allowRead, readable = "/"] = flags.values("--allow-read");
    *       if (allowRead) {
    *         console.log("I can read", readable);
    *       } else {
@@ -436,7 +436,7 @@ export interface Command {
    * use a command if the first "argument" provided is the name of a
    * command.
    *
-   * Note that _this_ command's options are _not_ automatically inherited by
+   * Note that _this_ command's flags are _not_ automatically inherited by
    * subcommands, unless the option is persistent (`isPersistent: boolean`)
    */
   subcommands?: NonEmptyArray<Command>;
@@ -448,18 +448,12 @@ export interface Command {
   isHidden?: boolean;
 
   /**
-   * If there is no action on this command, print usage information instead
+   * Manually set whether a subcommand is required
    *
-   * If the _is_ an action, the action will be executed instead of printing the
-   * help information. This allows you to customize the behavior while still
-   * informing the autocomplete engine.
+   * By default, subcommands are required if the command takes no arguments
+   * *and* has subcommands. You'll rarely want to override this behavior.
    *
-   * When this property is boolean, autocomplete will always insert a space after
-   * the command name.
-   *
-   * Note that actions are optional if using `requiresSubcommand`.
-   *
-   * NOTE: When `requiresSubcommand` is boolean, arguments are allowed even if
+   * NOTE: When `requiresSubcommand` is true, arguments are allowed even if
    * the command doesn't allow them. This is so the runtime can implement a
    * more useful error message for typos.
    */
@@ -484,23 +478,23 @@ export interface Command {
    *     { name: "command", isCommand: boolean },
    *     { name: "args", isVariadic: boolean, isOptional: boolean },
    *   ],
-   *   options: [
+   *   flags: [
    *     { name: "--time", description: "Time the execution" },
    *     { name: "--output", args: { name: "path" } },
    *     { name: "--censor", args: { name: "words", isVariadic: boolean } },
    *     { name: ["-v", "--verbose"], isRepeatable: boolean },
    *   ],
-   *   action({ args: [command, ...args], options, error }) {
+   *   action({ args: [command, ...args], flags, error }) {
    *     commands; // => string
    *     args; // => string[]
    *
-   *     // The `options` object has methods available to get data about
-   *     // the options, like args, presence, and number of usages.
+   *     // The `flags` object has methods available to get data about
+   *     // the flags, like args, presence, and number of usages.
    *
-   *     options.has("--time"); // => boolean
-   *     options.get("--output"); // => string
-   *     options.all("--censor"); // => string[]
-   *     options.count("--verbose"); // => number
+   *     flags.has("--time"); // => boolean
+   *     flags.get("--output"); // => string
+   *     flags.all("--censor"); // => string[]
+   *     flags.count("--verbose"); // => number
    *   },
    * };
    * ```
@@ -521,22 +515,22 @@ export interface Command {
 }
 
 /**
- * Options are used to modify how a command executes
+ * flags are used to modify how a command executes
  *
  * These are provided after the command and belong specifically to their
  * parent command. You've used these before, such as the permissions flags in
  * a `deno` command, eg. `deno run --allow-read --allow-net server.ts`.
  *
- * Options can have multiple names, and each name is literal. Names that
+ * flags can have multiple names, and each name is literal. Names that
  * begin with a single dash, eg. `-x`, can be chained with other single-dash
- * options, eg. `-xyz` is the same as `-x -y -z`.
+ * flags, eg. `-xyz` is the same as `-x -y -z`.
  *
- * By default, options must start with `-` (eg. `-a`), `+` (`+o`), or `--` (`--abc`).
+ * By default, flags must start with `-` (eg. `-a`), `+` (`+o`), or `--` (`--abc`).
  * Option names that start with anything else won't be found unless a parent
  * command has `parserDirectives.flagsArePosixNoncompliant` set to `boolean`,
  * which enables literal option names.
  *
- * Options can also have actions, which will be executed _instead of the subcommand_.
+ * flags can also have actions, which will be executed _instead of the subcommand_.
  * These actions should not be used for slight changes in behavior, but instead for
  * entirely different things, such as `--help` and `--version`.
  *
@@ -544,7 +538,7 @@ export interface Command {
  * ```ts
  * const spec: CLI.Spec = {
  *   name: "sort",
- *   options: [
+ *   flags: [
  *     { name: "-s", description: "Stable sort" },
  *     { name: ["-u", "--unique"], description: "Unique keys (implies -s)" },
  *     {
@@ -560,10 +554,10 @@ export interface Command {
  *     },
  *     // ...
  *   ],
- *   action({ options }) {
- *     const unique = options.has("--unique");
- *     const stable = options.has("--stable");
- *     const [size] = options.get("--buffer-size")
+ *   action({ flags }) {
+ *     const unique = flags.has("--unique");
+ *     const stable = flags.has("--stable");
+ *     const [size] = flags.get("--buffer-size")
  *   }
  * };
  * ```
@@ -601,7 +595,7 @@ export interface Flag {
   /**
    * Allow this option to be provided multiple times
    *
-   * Due to limitations with parsing, repeatable options cannot take arguments.
+   * Due to limitations with parsing, repeatable flags cannot take arguments.
    * For example, with `{ name: "-i", args: { isOptional: boolean }, isRepeatable: boolean }`, is
    * `-iii` the same as `-i -i -i` or `-i ii`?
    *
@@ -616,14 +610,14 @@ export interface Flag {
    * // example -vvv
    * const spec: CLI.Spec = {
    *   name: "example",
-   *   options: [{
+   *   flags: [{
    *     name: "-v",
    *     isRepeatable: 3,
    *   }],
-   *   action({ options }) {
+   *   action({ flags }) {
    *     // If omitted, it will be `undefined`. If `-v` is provided, it
    *     // will be an array of empty strings (as many as usages of `-v`)
-   *     const verbosity = options.get("-v").length;
+   *     const verbosity = flags.get("-v").length;
    *   },
    * };
    * ```
@@ -650,7 +644,7 @@ export interface Flag {
   isRequired?: boolean;
 
   /**
-   * Fail parsing if these options are provided
+   * Fail parsing if these flags are provided
    *
    * You only need to use one name of the option.
    *
@@ -662,7 +656,7 @@ export interface Flag {
    * // Fails:    example -xa
    * const spec: CLI.Spec = {
    *   name: "example",
-   *   options: [
+   *   flags: [
    *     { name: ["-a", "--abc"] },
    *     { name: ["-x", "--xyz"], exclusiveOn: ["--abc"] },
    *   ],
@@ -672,9 +666,9 @@ export interface Flag {
   exclusiveOn?: NonEmptyArray<string>;
 
   /**
-   * Fail parsing if these options are _not_ provided
+   * Fail parsing if these flags are _not_ provided
    *
-   * You only need to use one name of the option. The options can be
+   * You only need to use one name of the option. The flags can be
    * provided in any order.
    *
    * ## Example
@@ -685,7 +679,7 @@ export interface Flag {
    * // Fails:    example -x
    * const spec: CLI.Spec = {
    *   name: "example",
-   *   options: [
+   *   flags: [
    *     { name: ["-a", "--abc"] },
    *     { name: ["-x", "--xyz"], dependsOn: ["--abc"] },
    *   ],
@@ -697,7 +691,7 @@ export interface Flag {
   /**
    * Action performed when this option is provided
    *
-   * The command and remaining options/args will continue to be parsed.
+   * The command and remaining flags/args will continue to be parsed.
    * Option actions are executed instead of command actions -- the final
    * option action will be used.
    *

@@ -1,4 +1,4 @@
-import type { Action, Command, Flag, NonEmptyArray } from "./types.ts";
+import type { Action, Command, NonEmptyArray, Option } from "./types.ts";
 import { analyze, BaseToken, TokenCommand, TokenOption } from "./analyze.ts";
 import { isArray, makeArray, setEach } from "./collections.ts";
 import {
@@ -121,11 +121,11 @@ export function parse(input: readonly string[], spec: Command): ParseResult {
   let argSeparatorIndex = -1;
 
   // Each item in this set must be provided
-  const dependsOnOptions = [] as Flag[];
+  const dependsOnOptions = [] as Option[];
   // Each item in this set cannot be provided
-  const exclusiveOnOptions = [] as Flag[];
+  const exclusiveOnOptions = [] as Option[];
 
-  const parseOption = (token: TokenOption<Flag>) => {
+  const parseOption = (token: TokenOption<Option>) => {
     const option = token.option;
 
     // Don't allow repeating non-repeatable options
@@ -145,8 +145,7 @@ export function parse(input: readonly string[], spec: Command): ParseResult {
       optionActions.push(option.action);
     }
 
-    // Repeatable options are treated differently so we
-    // *have* to branch on this.
+    // Repeatable options are treated differently so we *have* to branch on this.
     if (option.isRepeatable) {
       const maxRepeat = option.isRepeatable === true
         ? Infinity
@@ -202,7 +201,7 @@ export function parse(input: readonly string[], spec: Command): ParseResult {
     if (foundArgs.length >= commandArgsMax) {
       throw new ParseError(
         ctx(),
-        "Unexpected argument '--', did you mean to use an option instead?",
+        "Unexpected argument '--', did you mean to use a flag instead?",
       );
     }
     argSeparatorIndex = foundArgs.length;
@@ -223,7 +222,7 @@ export function parse(input: readonly string[], spec: Command): ParseResult {
 
   const ctx = () => ({ path } as ErrorContext);
 
-  const { finalState, tokens } = analyze<Command, Flag>(input, spec);
+  const { finalState, tokens } = analyze<Command, Option>(input, spec);
 
   for (const token of tokens) {
     switch (state) {
