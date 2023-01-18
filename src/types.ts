@@ -256,7 +256,7 @@ export interface ActionInit {
  * ```
  */
 export interface Spec extends Omit<Command, "name"> {
-  /** Name of the CLI */
+  /** The name of the CLI */
   name?: string;
 }
 
@@ -357,24 +357,21 @@ export interface Command {
    * eg. `\n\n`), the first one will be used as the short description. This
    * is shown as the description next to the command in the `--help` menu.
    *
-   * The description is literal. It won't be dedented.
-   *
    * ## Example
    * ```ts
    * const spec: CLI.Spec = {
    *   name: "deno",
    *   description: `
-   * A modern JavaScript and TypeScript runtime
+   *     A modern JavaScript and TypeScript runtime
    *
-   * Docs: https://deno.land/manual
-   * Modules: https://deno.land/std/ https://deno.land/x/
-   * Bugs: https://github.com/denoland/deno/issues
+   *     Docs: https://deno.land/manual
+   *     Modules: https://deno.land/std/ https://deno.land/x/
+   *     Bugs: https://github.com/denoland/deno/issues
    *
-   * To start the REPL:
+   *     To start the REPL:
    *
-   *   deno
-   *
-   * `.trim(),
+   *       deno
+   *   `,
    *   // ...
    * }
    * ```
@@ -415,7 +412,7 @@ export interface Command {
    *       },
    *     ],
    *     action({ flags }) {
-   *       const [allowRead, readable = "/"] = flags.values("--allow-read");
+   *       const [allowRead, readable = "/"] = flags.get("--allow-read");
    *       if (allowRead) {
    *         console.log("I can read", readable);
    *       } else {

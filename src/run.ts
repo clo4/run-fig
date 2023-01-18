@@ -85,9 +85,8 @@ export async function execute(
     args: result.args,
     path: result.path,
     argSeparatorIndex: result.argSeparatorIndex,
-    options: {
-      options,
-      has: (name) => options.has(name),
+    flags: {
+      flags: options,
       get: (name) => {
         const found = options.get(name);
         if (found === undefined) {

@@ -3,3 +3,5 @@
 - remove unsound [T, ...T[]]
   - This can be mutated, allowing you to remove elements which means this can
     really have any number of values, including 0
+
+- parser uses `options` internally, this should be changed to `flags`
