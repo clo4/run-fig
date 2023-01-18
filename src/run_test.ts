@@ -20,7 +20,7 @@ Deno.test({
             return result;
           },
         },
-        []
+        [],
       );
       assertEquals(out, result);
     }
@@ -47,7 +47,7 @@ Deno.test({
           },
         ],
       },
-      ["1", "2"]
+      ["1", "2"],
     );
     assertEquals(out, 2);
   },
@@ -78,7 +78,7 @@ Deno.test({
           },
         ],
       },
-      ["1", "--beta", "2", "--test", "--alpha"]
+      ["1", "--beta", "2", "--test", "--alpha"],
     );
     assertEquals(out, 123);
   },

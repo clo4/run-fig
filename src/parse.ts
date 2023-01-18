@@ -1,5 +1,5 @@
-import type { Action, NonEmptyArray, Option, Command } from "./types.ts";
-import { analyze, BaseToken, TokenOption, TokenCommand } from "./analyze.ts";
+import type { Action, Command, NonEmptyArray, Option } from "./types.ts";
+import { analyze, BaseToken, TokenCommand, TokenOption } from "./analyze.ts";
 import { isArray, makeArray, setEach } from "./collections.ts";
 import {
   ErrorContext,
@@ -95,7 +95,7 @@ export function parse(input: readonly string[], spec: Command): ParseResult {
 
   if (spec.action) {
     actions.push(spec.action);
-  } else if (spec.requiresCommand) {
+  } else if (spec.requiresSubcommand) {
     actions.push(builtinUsageAction);
   }
 
@@ -148,8 +148,9 @@ export function parse(input: readonly string[], spec: Command): ParseResult {
     // Repeatable options are treated differently so we
     // *have* to branch on this.
     if (option.isRepeatable) {
-      const maxRepeat =
-        option.isRepeatable === true ? Infinity : option.isRepeatable;
+      const maxRepeat = option.isRepeatable === true
+        ? Infinity
+        : option.isRepeatable;
       let arr = get(foundOptions, option.name);
       if (!arr) {
         arr = [];
@@ -189,7 +190,7 @@ export function parse(input: readonly string[], spec: Command): ParseResult {
     // many arguments is allowed because the user has made a typo
     // (they were intending to use a command)
     if (
-      !path[path.length - 1].requiresCommand &&
+      !path[path.length - 1].requiresSubcommand &&
       foundArgs.length >= commandArgsMax
     ) {
       throw new TooManyArguments(token, ctx());
@@ -201,7 +202,7 @@ export function parse(input: readonly string[], spec: Command): ParseResult {
     if (foundArgs.length >= commandArgsMax) {
       throw new ParseError(
         ctx(),
-        "Unexpected argument '--', did you mean to use an option instead?"
+        "Unexpected argument '--', did you mean to use an option instead?",
       );
     }
     argSeparatorIndex = foundArgs.length;
@@ -215,7 +216,7 @@ export function parse(input: readonly string[], spec: Command): ParseResult {
     commandArgsMax = getMaxArgs(args);
     if (token.command.action) {
       actions.push(token.command.action);
-    } else if (token.command.requiresCommand) {
+    } else if (token.command.requiresSubcommand) {
       actions.push(builtinUsageAction);
     }
   };
@@ -259,7 +260,7 @@ export function parse(input: readonly string[], spec: Command): ParseResult {
       case State.ParseOptionArgs: {
         assert(
           Array.isArray(optionArgs),
-          "Invalid state, must have an array to store option arguments"
+          "Invalid state, must have an array to store option arguments",
         );
         switch (token.kind) {
           case "option-arg":
@@ -278,7 +279,7 @@ export function parse(input: readonly string[], spec: Command): ParseResult {
               throw new TooFewOptionArguments(
                 optionArgsMin,
                 optionArgsMax,
-                ctx()
+                ctx(),
               );
             }
             parseOption(token);
@@ -297,7 +298,7 @@ export function parse(input: readonly string[], spec: Command): ParseResult {
               throw new TooFewOptionArguments(
                 optionArgsMin,
                 optionArgsMax,
-                ctx()
+                ctx(),
               );
             }
             parseArgSeparator();
@@ -317,7 +318,7 @@ export function parse(input: readonly string[], spec: Command): ParseResult {
       case State.ParseOptionArgRequireSeparator: {
         assert(
           Array.isArray(optionArgs),
-          "Invalid state, must have an array to store option arguments"
+          "Invalid state, must have an array to store option arguments",
         );
         assert(requiredSeparator, "Invalid state, a separator must be set");
         switch (token.kind) {
@@ -328,7 +329,7 @@ export function parse(input: readonly string[], spec: Command): ParseResult {
             ) {
               throw new ParseError(
                 ctx(),
-                `Incorrect separator, use '${requiredSeparator}' instead of '${token.separator}'`
+                `Incorrect separator, use '${requiredSeparator}' instead of '${token.separator}'`,
               );
             }
             // If this is true, we know thanks to the test suite that
@@ -342,7 +343,7 @@ export function parse(input: readonly string[], spec: Command): ParseResult {
               throw new TooFewOptionArguments(
                 optionArgsMin,
                 optionArgsMax,
-                ctx()
+                ctx(),
               );
             }
             optionArgs = null;
@@ -355,7 +356,7 @@ export function parse(input: readonly string[], spec: Command): ParseResult {
               throw new TooFewOptionArguments(
                 optionArgsMin,
                 optionArgsMax,
-                ctx()
+                ctx(),
               );
             }
             parseOption(token);
@@ -372,7 +373,7 @@ export function parse(input: readonly string[], spec: Command): ParseResult {
               throw new TooFewOptionArguments(
                 optionArgsMin,
                 optionArgsMax,
-                ctx()
+                ctx(),
               );
             }
             parseCommand(token);
@@ -402,7 +403,7 @@ export function parse(input: readonly string[], spec: Command): ParseResult {
       if (!foundOptions.has(name)) {
         throw new ParseError(
           ctx(),
-          `${option.name} requires ${name}, add it to fix this error`
+          `${option.name} requires ${name}, add it to fix this error`,
         );
       }
     }
@@ -412,7 +413,7 @@ export function parse(input: readonly string[], spec: Command): ParseResult {
       if (foundOptions.has(name)) {
         throw new ParseError(
           ctx(),
-          `${option.name} can't be used together with ${name}`
+          `${option.name} can't be used together with ${name}`,
         );
       }
     }

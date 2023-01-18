@@ -4,7 +4,7 @@
  * @module
  */
 
-import type { Arg, Option, SingleOrArray, Command } from "./types.ts";
+import type { Arg, Command, Option, SingleOrArray } from "./types.ts";
 import { isArray, makeArray } from "./collections.ts";
 import { assert, getMaxArgs, getMinArgs } from "./parse.ts";
 
@@ -20,7 +20,7 @@ const repr = JSON.stringify;
 function forEachArgArray(
   spec: Command,
   fn: (args: Arg[], path: Command[]) => void,
-  path: Command[] = []
+  path: Command[] = [],
 ): void {
   path = path.concat(spec);
   fn(makeArray(spec.args), path);
@@ -36,7 +36,7 @@ function forEachArgArray(
 function forEachOptionArray(
   spec: Command,
   fn: (options: Option[], path: Command[]) => void,
-  path: Command[] = []
+  path: Command[] = [],
 ): void {
   path = path.concat(spec);
   fn(makeArray(spec.options), path);
@@ -53,7 +53,7 @@ function forEachOptionArray(
 function forEachCommand(
   spec: Command,
   fn: (spec: Command, path: Command[]) => void,
-  path: Command[] = []
+  path: Command[] = [],
 ): void {
   path = path.concat(spec);
   fn(spec, path);
@@ -75,7 +75,7 @@ function namedArrayToString(...parts: { name: SingleOrArray<string> }[]) {
 
 /** Asserts that required arguments do not come after an optional argument */
 export function assertRequiredArgumentsDoNotFollowOptionalArguments(
-  spec: Command
+  spec: Command,
 ): void {
   forEachArgArray(spec, (args, path) => {
     let remainingMustBeOptional = false;
@@ -115,7 +115,7 @@ export function assertRepeatableOptionsHaveNoArguments(spec: Command): void {
 
 /** Asserts that `isRepeatable` is only assigned a positive integer */
 export function assertRepeatableOptionsArePositiveIntegers(
-  spec: Command
+  spec: Command,
 ): void {
   forEachOptionArray(spec, (options, path) => {
     for (const [index, option] of options.entries()) {
@@ -178,10 +178,10 @@ export function assertOptionsDoNotShadowPersistentOptions(spec: Command): void {
         .flatMap((command) =>
           command.options
             ? command.options
-                .filter((option) => option.isPersistent)
-                .flatMap((option) => option.name)
+              .filter((option) => option.isPersistent)
+              .flatMap((option) => option.name)
             : []
-        )
+        ),
     );
     for (const [index, option] of makeArray(options).entries()) {
       for (const name of makeArray(option.name)) {
@@ -228,15 +228,14 @@ export function assertCommandsHaveLocallyUniqueNames(spec: Command): void {
  * set on an ancestor command.
  */
 export function assertLongOptionNamesDoNotStartWithSingleDash(
-  spec: Command
+  spec: Command,
 ): void {
   forEachOptionArray(spec, (options, path) => {
     // TODO: check if this is correct
-    const skip =
-      path
-        .map((command) => command.parserDirectives?.flagsArePosixNoncompliant)
-        .filter((value) => value !== undefined)
-        .at(-1) || false;
+    const skip = path
+      .map((command) => command.parserDirectives?.flagsArePosixNoncompliant)
+      .filter((value) => value !== undefined)
+      .at(-1) || false;
 
     if (skip) return;
 
@@ -273,11 +272,10 @@ export function assertLongOptionNamesDoNotStartWithSingleDash(
 export function assertOptionNamesStartWithDashes(spec: Command): void {
   forEachOptionArray(spec, (options, path) => {
     // TODO: check if this is correct
-    const skip =
-      path
-        .map((command) => command.parserDirectives?.flagsArePosixNoncompliant)
-        .filter((value) => value !== undefined)
-        .at(-1) || false;
+    const skip = path
+      .map((command) => command.parserDirectives?.flagsArePosixNoncompliant)
+      .filter((value) => value !== undefined)
+      .at(-1) || false;
 
     if (skip) return;
 
@@ -338,7 +336,7 @@ export function assertOptionArgSeparatorsHaveCharacters(spec: Command): void {
   forEachCommand(spec, (subcommands, path) => {
     for (const [index, command] of makeArray(subcommands).entries()) {
       const separators = makeArray(
-        command.parserDirectives?.optionArgSeparators
+        command.parserDirectives?.optionArgSeparators,
       );
       for (const [sepIndex, separator] of separators.entries()) {
         // deno-fmt-ignore
@@ -360,11 +358,10 @@ export function assertOptionArgSeparatorsHaveCharacters(spec: Command): void {
 export function assertPlusMinusOptionsTakeOneArg(spec: Command): void {
   forEachOptionArray(spec, (options, path) => {
     // TODO: check if this is correct
-    const skip =
-      path
-        .map((command) => command.parserDirectives?.flagsArePosixNoncompliant)
-        .filter((value) => value !== undefined)
-        .at(-1) || false;
+    const skip = path
+      .map((command) => command.parserDirectives?.flagsArePosixNoncompliant)
+      .filter((value) => value !== undefined)
+      .at(-1) || false;
 
     if (skip) return;
 
@@ -541,7 +538,7 @@ export function assertRequiresSeparatorTakesOneArg(spec: Command): void {
 export function assertCommonOptionsArePersistent(spec: Command): void {
   const isSameName = (
     a: string | readonly string[],
-    b: string | readonly string[]
+    b: string | readonly string[],
   ) => {
     if (isArray(a) && isArray(b)) {
       return (
@@ -578,7 +575,7 @@ export function assertCommonOptionsArePersistent(spec: Command): void {
     failures.length === 0,
     `The following options were also defined by all subcommands. Instead, define the option once, and use \`isPersistent: true\` to persist it across all subcommands.
 ${failures.map(([_, line]) => " * " + line).join("\n")}
-`
+`,
   );
 }
 
@@ -594,8 +591,8 @@ export function assertOptionNameReferencesExist(spec: Command): void {
         .flatMap((command) =>
           command.options
             ? command.options
-                .filter((option) => option.isPersistent)
-                .flatMap((option) => option.name)
+              .filter((option) => option.isPersistent)
+              .flatMap((option) => option.name)
             : []
         ),
       ...options.flatMap((option) => option.name),
@@ -636,19 +633,20 @@ export function assertPrefixMatchCommandsHaveNoArguments(spec: Command): void {
   forEachCommand(spec, (command, path) => {
     // Skip if the final parser directive in the chain is false
     // TODO: this could probably be a utility function, `isParserDirectiveOn`
-    const skip =
-      path
-        .map((cmd) => cmd.parserDirectives?.subcommandsMatchUniquePrefix)
-        .filter((value) => value !== undefined)
-        .at(-1) === false;
+    const skip = path
+      .map((cmd) => cmd.parserDirectives?.subcommandsMatchUniquePrefix)
+      .filter((value) => value !== undefined)
+      .at(-1) === false;
 
     if (skip) return;
 
     assert(
       !(command.subcommands && command.args),
-      `The command ${namedArrayToString(
-        ...path
-      )} has at least one argument and command, but matches subcommands based on unique prefixes. To fix this, use \`parserDirectives: { subcommandsMatchUniquePrefix: false }\``
+      `The command ${
+        namedArrayToString(
+          ...path,
+        )
+      } has at least one argument and command, but matches subcommands based on unique prefixes. To fix this, use \`parserDirectives: { subcommandsMatchUniquePrefix: false }\``,
     );
   });
 }
@@ -697,7 +695,7 @@ export interface TestOptions {
 
 function getName(
   namingStyle: TestNamingStyle,
-  names: { [K in TestNamingStyle]: string }
+  names: { [K in TestNamingStyle]: string },
 ) {
   return names[namingStyle];
 }
@@ -711,7 +709,7 @@ function getName(
  */
 export function test(
   spec: Command,
-  options: TestOptions = {}
+  options: TestOptions = {},
 ): (t: Deno.TestContext) => Promise<void> {
   const {
     allowShadowingPersistentOptions = false,
@@ -728,7 +726,7 @@ export function test(
       }),
       () => {
         assertRequiredArgumentsDoNotFollowOptionalArguments(spec);
-      }
+      },
     );
     await t.step(
       getName(namingStyle, {
@@ -737,7 +735,7 @@ export function test(
       }),
       () => {
         assertRepeatableOptionsHaveNoArguments(spec);
-      }
+      },
     );
     await t.step(
       getName(namingStyle, {
@@ -747,7 +745,7 @@ export function test(
       }),
       () => {
         assertRepeatableOptionsArePositiveIntegers(spec);
-      }
+      },
     );
     await t.step(
       getName(namingStyle, {
@@ -756,7 +754,7 @@ export function test(
       }),
       () => {
         assertLongOptionNamesDoNotStartWithSingleDash(spec);
-      }
+      },
     );
     await t.step(
       getName(namingStyle, {
@@ -765,7 +763,7 @@ export function test(
       }),
       () => {
         assertOptionNamesStartWithDashes(spec);
-      }
+      },
     );
     await t.step(
       getName(namingStyle, {
@@ -774,7 +772,7 @@ export function test(
       }),
       () => {
         assertOptionsHaveLocallyUniqueNames(spec);
-      }
+      },
     );
     if (!allowShadowingPersistentOptions) {
       await t.step(
@@ -784,7 +782,7 @@ export function test(
         }),
         () => {
           assertOptionsDoNotShadowPersistentOptions(spec);
-        }
+        },
       );
     }
     await t.step(
@@ -794,7 +792,7 @@ export function test(
       }),
       () => {
         assertCommandsHaveLocallyUniqueNames(spec);
-      }
+      },
     );
     await t.step(
       getName(namingStyle, {
@@ -803,7 +801,7 @@ export function test(
       }),
       () => {
         assertNothingIsNamedDashDash(spec);
-      }
+      },
     );
     await t.step(
       getName(namingStyle, {
@@ -812,7 +810,7 @@ export function test(
       }),
       () => {
         assertOptionArgSeparatorsHaveCharacters(spec);
-      }
+      },
     );
     await t.step(
       getName(namingStyle, {
@@ -821,7 +819,7 @@ export function test(
       }),
       () => {
         assertPlusMinusOptionsTakeOneArg(spec);
-      }
+      },
     );
     await t.step(
       getName(namingStyle, {
@@ -830,7 +828,7 @@ export function test(
       }),
       () => {
         assertNamesHaveNoExtraWhitespace(spec);
-      }
+      },
     );
     if (!allowNoDescription) {
       await t.step(
@@ -840,7 +838,7 @@ export function test(
         }),
         () => {
           assertEverythingHasDescription(spec);
-        }
+        },
       );
     }
     if (!allowLongDescriptionLines) {
@@ -852,7 +850,7 @@ export function test(
         }),
         () => {
           assertDescriptionLineLengthUnder69(spec);
-        }
+        },
       );
     }
     await t.step(
@@ -862,7 +860,7 @@ export function test(
       }),
       () => {
         assertRequiresSeparatorTakesOneArg(spec);
-      }
+      },
     );
     await t.step(
       getName(namingStyle, {
@@ -871,7 +869,7 @@ export function test(
       }),
       () => {
         assertCommonOptionsArePersistent(spec);
-      }
+      },
     );
     await t.step(
       getName(namingStyle, {
@@ -880,7 +878,7 @@ export function test(
       }),
       () => {
         assertOptionNameReferencesExist(spec);
-      }
+      },
     );
     if (!allowMatchingCommandPrefixAndArgs) {
       await t.step(
@@ -891,7 +889,7 @@ export function test(
         }),
         () => {
           assertPrefixMatchCommandsHaveNoArguments(spec);
-        }
+        },
       );
     }
   };

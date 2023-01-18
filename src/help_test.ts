@@ -11,7 +11,7 @@ interface Includer<T> {
 function assertIncludes<T>(includer: Includer<T>, included: T): void {
   assert(
     includer.includes(included),
-    `Expected to find ${JSON.stringify(included)}`
+    `Expected to find ${JSON.stringify(included)}`,
   );
 }
 
@@ -19,7 +19,7 @@ function assertIncludes<T>(includer: Includer<T>, included: T): void {
 function assertNotIncludes<T>(includer: Includer<T>, notIncluded: T): void {
   assert(
     !includer.includes(notIncluded),
-    `Found ${JSON.stringify(notIncluded)}`
+    `Found ${JSON.stringify(notIncluded)}`,
   );
 }
 
@@ -82,7 +82,7 @@ Deno.test({
   fn() {
     const spec: Command = {
       name: "TEST_NAME",
-      requiresCommand: true,
+      requiresSubcommand: true,
       options: [
         {
           name: ["-o", "--option"],

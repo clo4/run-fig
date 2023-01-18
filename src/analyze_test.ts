@@ -1,20 +1,20 @@
 import {
   $arg,
   $argSeparator,
+  $command,
   $option,
   $optionArg,
-  $command,
   $unknownOption,
   analyze,
   AnalyzeResult,
   Token,
 } from "./analyze.ts";
 import { assertEquals } from "./deps/std_testing_asserts.ts";
-import type { Option, Command } from "./types.ts";
+import type { Command, Option } from "./types.ts";
 
 const assertEqualsTokens = <Command, Option>(
   a: AnalyzeResult<Command, Option>,
-  b: Token<Command, Option>[]
+  b: Token<Command, Option>[],
 ): void => {
   assertEquals(a.tokens, b);
 };
@@ -55,7 +55,7 @@ Deno.test({
         name: "test",
         options: [{ name: "--option" }],
       }),
-      [$option(0, 0, 8, "--option", { name: "--option" })]
+      [$option(0, 0, 8, "--option", { name: "--option" })],
     );
   },
 });
@@ -330,7 +330,7 @@ Deno.test({
       $command<Command, Option>(0, 0, 4, "abc-", spec.subcommands![2]),
     ]);
     // should match both, so no unique command, fails command check.
-    // on commands with requiresCommand, this will still fail at runtime
+    // on commands with requiresSubcommand, this will still fail at runtime
     assertEqualsTokens(analyze(["long-"], spec), [$arg(0, 0, 5, "long-")]);
     // should match only one
     assertEqualsTokens(analyze(["long-n"], spec), [

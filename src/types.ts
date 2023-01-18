@@ -192,7 +192,7 @@ export interface ActionInit {
    * ```
    * const spec: CLI.Spec = {
    *   name: "example",
-   *   requiresCommand: true,
+   *   requiresSubcommand: true,
    *   action({ help }) {
    *     console.log("A command is required");
    *     console.log(help({ usage: false }));
@@ -477,13 +477,13 @@ export interface Command {
    * When this property is true, autocomplete will always insert a space after
    * the command name.
    *
-   * Note that actions are optional if using `requiresCommand`.
+   * Note that actions are optional if using `requiresSubcommand`.
    *
-   * NOTE: When `requiresCommand` is true, arguments are allowed even if
+   * NOTE: When `requiresSubcommand` is true, arguments are allowed even if
    * the command doesn't allow them. This is so the runtime can implement a
    * more useful error message for typos.
    */
-  requiresCommand?: true;
+  requiresSubcommand?: true;
 
   /**
    * Run this action when the command is used
@@ -493,7 +493,7 @@ export interface Command {
    * You can use method-definition syntax to define the action, eg.
    * `action() {...}`. This is how all examples are formatted.
    *
-   * Note that actions are optional if using `requiresCommand`.
+   * Note that actions are optional if using `requiresSubcommand`.
    *
    * ## Example
    * ```ts

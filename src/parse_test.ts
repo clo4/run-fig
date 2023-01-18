@@ -1,6 +1,6 @@
 import { usage } from "./help.ts";
 import { getMaxArgs, getMinArgs, parse } from "./parse.ts";
-import type { Spec, Command } from "./types.ts";
+import type { Command, Spec } from "./types.ts";
 import { assertEquals, assertThrows } from "./deps/std_testing_asserts.ts";
 
 function makeMap<V>(record: Record<string, V>): Map<string, V> {
@@ -363,7 +363,7 @@ Deno.test({
 
     const result = parse(
       ["--plain=value", "--empty=", "--optional=value", "--variadic=value"],
-      spec
+      spec,
     );
 
     const wantOptions = makeMap({
@@ -548,7 +548,8 @@ Deno.test({
 });
 
 Deno.test({
-  name: "parse: chained options can have arguments in the same value with no separator",
+  name:
+    "parse: chained options can have arguments in the same value with no separator",
   fn() {
     const spec: Command = {
       name: "test",
@@ -596,7 +597,8 @@ Deno.test({
 });
 
 Deno.test({
-  name: "parse: tokens starting with '--' that don't match an option is an error",
+  name:
+    "parse: tokens starting with '--' that don't match an option is an error",
   fn() {
     const spec: Command = {
       name: "test",
@@ -865,7 +867,7 @@ Deno.test({
       makeMap({
         "--rep": [""],
         "-r": [""],
-      })
+      }),
     );
   },
 });
@@ -883,7 +885,7 @@ Deno.test({
       makeMap({
         "--rep": ["", "", "", ""],
         "-r": ["", "", "", ""],
-      })
+      }),
     );
     const result2 = parse(["-rrrr"], spec);
     assertEquals(
@@ -891,7 +893,7 @@ Deno.test({
       makeMap({
         "--rep": ["", "", "", ""],
         "-r": ["", "", "", ""],
-      })
+      }),
     );
   },
 });
@@ -909,7 +911,7 @@ Deno.test({
       makeMap({
         "--rep": ["", ""],
         "-r": ["", ""],
-      })
+      }),
     );
     const result2 = parse(["-rr"], spec);
     assertEquals(
@@ -917,7 +919,7 @@ Deno.test({
       makeMap({
         "--rep": ["", ""],
         "-r": ["", ""],
-      })
+      }),
     );
     assertThrows(() => {
       parse(["--rep", "--rep", "--rep"], spec);
@@ -941,7 +943,7 @@ Deno.test({
       result1.options,
       makeMap({
         "--sep": ["val"],
-      })
+      }),
     );
     assertThrows(() => {
       parse(["--sep", "val"], spec);
@@ -969,7 +971,7 @@ Deno.test({
       result1.options,
       makeMap({
         "--sep": ["val"],
-      })
+      }),
     );
     assertEquals(result1.args, ["val"]);
 
@@ -978,7 +980,7 @@ Deno.test({
       result2.options,
       makeMap({
         "--sep": [],
-      })
+      }),
     );
     assertEquals(result2.args, ["val"]);
   },
@@ -1007,7 +1009,7 @@ Deno.test({
       makeMap({
         "--sep": [],
         "--example": [],
-      })
+      }),
     );
   },
 });
@@ -1033,7 +1035,7 @@ Deno.test({
       result.options,
       makeMap({
         "--sep": [],
-      })
+      }),
     );
     assertEquals(result.path, [spec, spec.subcommands![0]]);
   },
@@ -1058,7 +1060,7 @@ Deno.test({
       result.options,
       makeMap({
         "--sep": ["val"],
-      })
+      }),
     );
     assertEquals(result.args, ["val"]);
   },
@@ -1079,7 +1081,7 @@ Deno.test({
       result.options,
       makeMap({
         "--sep": ["val"],
-      })
+      }),
     );
     assertThrows(() => {
       parse(["--sep=val"], spec);
@@ -1192,11 +1194,11 @@ Deno.test({
 });
 
 Deno.test({
-  name: "parse: requiresCommand is equivalent to usage",
+  name: "parse: requiresSubcommand is equivalent to usage",
   fn() {
     const spec: Command = {
       name: "command",
-      requiresCommand: true,
+      requiresSubcommand: true,
     };
     const result = parse([], spec);
     assertEquals(result.actions, [usage]);
@@ -1204,12 +1206,13 @@ Deno.test({
 });
 
 Deno.test({
-  name: "parse: requiresCommand doesn't return CLI.usage when there is an action",
+  name:
+    "parse: requiresSubcommand doesn't return CLI.usage when there is an action",
   fn() {
     const action = () => {};
     const spec: Command = {
       name: "command",
-      requiresCommand: true,
+      requiresSubcommand: true,
       action,
     };
     const result = parse([], spec);

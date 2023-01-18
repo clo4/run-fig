@@ -228,7 +228,7 @@ Deno.test(
         options: [{ name: "one", args: [{ isOptional: true }, {}] }],
       });
     });
-  }
+  },
 );
 
 Deno.test("testing: assertLongOptionNamesDoNotStartWithSingleDash", () => {

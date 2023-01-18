@@ -10,7 +10,7 @@ const spec: CLI.Spec = {
   name: "task",
   description: "An extremely simple to-do list CLI",
   options: [CLI.help],
-  requiresCommand: true,
+  requiresSubcommand: true,
   parserDirectives: {
     subcommandsMatchUniquePrefix: true,
   },
@@ -42,7 +42,7 @@ const spec: CLI.Spec = {
           console.log(
             `%c${index + 1}:`,
             "color: green; font-weight: bold",
-            task
+            task,
           );
         }
       },

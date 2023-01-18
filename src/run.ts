@@ -39,7 +39,7 @@ export function printError(...strings: unknown[]): void {
  */
 export async function execute(
   spec: Spec,
-  args: readonly string[]
+  args: readonly string[],
 ): Promise<number> {
   let result: ParseResult;
   if (!spec.name) {
@@ -60,9 +60,11 @@ export async function execute(
       printError(`${error.message}\n\n${helpMessage}`);
     } else if (error instanceof ParseError) {
       printError(
-        `${error.message}\n\n${getHelp(error.context.path, {
-          description: false,
-        })}`
+        `${error.message}\n\n${
+          getHelp(error.context.path, {
+            description: false,
+          })
+        }`,
       );
     } else {
       printError(`${error}`);
@@ -138,7 +140,7 @@ export async function execute(
  */
 export async function run(
   spec: Spec,
-  options: { args?: readonly string[] } = {}
+  options: { args?: readonly string[] } = {},
 ): Promise<never> {
   const { args = Deno.args } = options;
   const code = await execute(spec, args);

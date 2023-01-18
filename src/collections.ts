@@ -37,7 +37,7 @@ export function makeArray1<T>(thing: T | NonEmptyArray<T>): [T, ...T[]] {
 export function setEach<K, V>(
   map: Map<K, V>,
   keys: K | readonly K[],
-  value: V
+  value: V,
 ): void {
   if (isArray(keys)) {
     for (const key of keys) {

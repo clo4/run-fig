@@ -75,24 +75,22 @@ export class TooManyArguments extends ParseError {
 
 export class TooFewOptionArguments extends ParseError {
   constructor(min: number, max: number, context: ErrorContext) {
-    const msg =
-      min === max
-        ? `Option needs ${min} argument${min === 1 ? "" : "s"}`
-        : !Number.isFinite(max)
-        ? `Option needs at least ${min} argument${min === 1 ? "" : "s"}`
-        : `Option needs between ${min} and ${max} arguments`;
+    const msg = min === max
+      ? `Option needs ${min} argument${min === 1 ? "" : "s"}`
+      : !Number.isFinite(max)
+      ? `Option needs at least ${min} argument${min === 1 ? "" : "s"}`
+      : `Option needs between ${min} and ${max} arguments`;
     super(context, msg);
   }
 }
 
 export class TooFewArguments extends ParseError {
   constructor(min: number, max: number, context: ErrorContext) {
-    const msg =
-      min === max
-        ? `Expected ${min} argument${min === 1 ? "" : "s"}`
-        : !Number.isFinite(max)
-        ? `Expected at least ${min} argument${min === 1 ? "" : "s"}`
-        : `Expected between ${min} and ${max} arguments`;
+    const msg = min === max
+      ? `Expected ${min} argument${min === 1 ? "" : "s"}`
+      : !Number.isFinite(max)
+      ? `Expected at least ${min} argument${min === 1 ? "" : "s"}`
+      : `Expected between ${min} and ${max} arguments`;
     super(context, msg);
   }
 }

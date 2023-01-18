@@ -1,29 +1,29 @@
 import type {
   Action,
   Arg,
+  Command,
   NonEmptyArray,
   Option,
   SingleOrArray,
-  Command,
 } from "./types.ts";
 import { makeArray, makeArray1 } from "./collections.ts";
 import { closest } from "./deps/fastest_levenshtein.ts";
 
 function getNamed<T extends { name: SingleOrArray<string> }>(
   named: readonly T[],
-  name: string
+  name: string,
 ): T | null {
   return named.find((obj) => makeArray(obj.name).includes(name)) ?? null;
 }
 
 function getParserDirective<
-  Key extends keyof NonNullable<Command["parserDirectives"]>
+  Key extends keyof NonNullable<Command["parserDirectives"]>,
 >(
   path: readonly Command[],
-  key: Key
+  key: Key,
 ): NonNullable<Command["parserDirectives"]>[Key] | undefined {
   return path.findLast(
-    (command) => command.parserDirectives && key in command.parserDirectives
+    (command) => command.parserDirectives && key in command.parserDirectives,
   )?.parserDirectives?.[key];
 }
 
@@ -85,7 +85,7 @@ export interface GetHelpOptions {
  */
 export function getHelp(
   path: NonEmptyArray<Command>,
-  options: GetHelpOptions = {}
+  options: GetHelpOptions = {},
 ): string {
   const { description = true, usage = true, didYouMean } = options;
   const sections = getSections(path);
@@ -94,7 +94,7 @@ export function getHelp(
       didYouMean.input,
       // The `closest` function actually takes a `readonly string[]` but it
       // isn't typed correctly
-      didYouMean.choices as string[]
+      didYouMean.choices as string[],
     );
   }
   if (!description) {
@@ -136,9 +136,11 @@ export const usage: Action = ({ path, args: [command], error, help }) => {
 
   if (command === "") {
     error(
-      `Expected a command, but the value was empty\n\n${help({
-        description: false,
-      })}`
+      `Expected a command, but the value was empty\n\n${
+        help({
+          description: false,
+        })
+      }`,
     );
     return 1;
   }
@@ -155,7 +157,7 @@ export const usage: Action = ({ path, args: [command], error, help }) => {
   if (subcommands && subcommands.length > 0) {
     const matchPrefix = getParserDirective(
       path,
-      "subcommandsMatchUniquePrefix"
+      "subcommandsMatchUniquePrefix",
     );
     if (matchPrefix) {
       const possible = subcommands.filter((name) => name.startsWith(command));
@@ -165,33 +167,41 @@ export const usage: Action = ({ path, args: [command], error, help }) => {
       // instead of the more specific 'ambiguous' message
       if (possible.length > 0) {
         error(
-          `Ambiguous command '${command}', could be: ${possible.join(
-            ", "
-          )}\n\n${help({
-            description: false,
-          })}`
+          `Ambiguous command '${command}', could be: ${
+            possible.join(
+              ", ",
+            )
+          }\n\n${
+            help({
+              description: false,
+            })
+          }`,
         );
         return 1;
       }
     }
 
     error(
-      `Unknown command '${command}'\n\n${help({
-        description: false,
-        didYouMean: {
-          input: command,
-          choices: subcommands,
-        },
-      })}`
+      `Unknown command '${command}'\n\n${
+        help({
+          description: false,
+          didYouMean: {
+            input: command,
+            choices: subcommands,
+          },
+        })
+      }`,
     );
     return 1;
   }
   // This case is possible when there are subcommands but
   // they're all hidden.
   error(
-    `Unknown command '${command}'\n\n${help({
-      description: false,
-    })}`
+    `Unknown command '${command}'\n\n${
+      help({
+        description: false,
+      })
+    }`,
   );
 
   return 1;
@@ -234,7 +244,7 @@ export const helpCommand: Command = {
       console.log(
         help({
           path: helpRoot,
-        })
+        }),
       );
       return 0;
     }
@@ -250,10 +260,12 @@ export const helpCommand: Command = {
 
     if (!parent.subcommands || parent.subcommands.length === 1) {
       error(
-        `No subcommands, try using 'help' with nothing after it\n\n${help({
-          description: false,
-          path: helpRoot,
-        })}`
+        `No subcommands, try using 'help' with nothing after it\n\n${
+          help({
+            description: false,
+            path: helpRoot,
+          })
+        }`,
       );
       return 1;
     }
@@ -271,21 +283,25 @@ export const helpCommand: Command = {
       // gives the user a clear indication of how the issue can be resolved.
       if (subcommands.length > 0) {
         error(
-          `There is no command named '${commandName}'\n\n${help({
-            path: helpRoot,
-            didYouMean: {
-              input: commandName,
-              choices: subcommands,
-            },
-          })}`
+          `There is no command named '${commandName}'\n\n${
+            help({
+              path: helpRoot,
+              didYouMean: {
+                input: commandName,
+                choices: subcommands,
+              },
+            })
+          }`,
         );
         return 1;
       } else {
         error(
-          `There is no command named '${commandName}'\n\n${help({
-            description: false,
-            path: helpRoot,
-          })}`
+          `There is no command named '${commandName}'\n\n${
+            help({
+              description: false,
+              path: helpRoot,
+            })
+          }`,
         );
         return 1;
       }
@@ -297,7 +313,7 @@ export const helpCommand: Command = {
     console.log(
       help({
         path: [...helpRoot, command],
-      })
+      }),
     );
   },
 };
@@ -353,6 +369,126 @@ function nonNullable<T>(value: T): value is NonNullable<T> {
   return value !== null && value !== undefined;
 }
 
+function generateHelpString(
+  path: NonEmptyArray<Command>,
+  options: {
+    noDescription?: true;
+    didYouMean?: {
+      userInput: string;
+      choices: string[];
+    };
+    noUsage?: true;
+  } = {},
+): string {
+  // This is a long function because it has to do a lot of work to
+  // format the output correctly, but the long version is actually
+  // much easier to read and maintain than the shorter one.
+  const command = path[path.length - 1];
+  const desc = command.description ?? "No description";
+
+  // 📍 Subcommands
+  const subcommands: readonly Command[] = command.subcommands ?? [];
+
+  // 📍 Options
+  const persistentOptions: Option[] = [];
+  const normalOptions: Option[] = [];
+
+  // Because the options should be displayed in a way that's easy to digest,
+  // and because options can also be inherited, there is some more complicated
+  // logic for this. TL;DR: Only display persistent options as persistent when
+  // it's actually relevant (meaning not at root level)
+
+  // 1. Extract the options
+  if (path.length === 1) {
+    // At the root level, there is no meaningful distinction between
+    // persistent and normal options, so we can just put them all into
+    // the normal options array.
+    if (command.options) {
+      normalOptions.push(...command.options);
+    }
+  } else {
+    // This is either a nested command or a command with visible subcommands,
+    // so the distinction between persistent and normal options is important.
+    for (const subcommand of subcommands) {
+      if (!subcommand.options) {
+        continue;
+      }
+      const options = subcommand.options;
+      for (const option of options) {
+        if (option.hidden) {
+          continue;
+        }
+        if (!option.isPersistent) {
+          continue;
+        }
+        persistentOptions.push(option);
+      }
+    }
+    if (command.options) {
+      for (const option of command.options) {
+        if (option.hidden) {
+          continue;
+        }
+        if (option.isPersistent) {
+          continue;
+        }
+        normalOptions.push(option);
+      }
+    }
+  }
+
+  // 📍 Usage
+  const usage = (() => {
+    if (options.noUsage) {
+      return null;
+    }
+    const parts: string[] = [];
+
+    const requiredOptions: Option[] = [];
+    for (const option of normalOptions) {
+      if (option.isRequired) {
+        requiredOptions.push(option);
+      }
+    }
+    for (const option of persistentOptions) {
+      if (option.isRequired) {
+        requiredOptions.push(option);
+      }
+    }
+    if (requiredOptions.length > 0) {
+      for (const option of requiredOptions) {
+        parts.push(optionToString(option));
+      }
+    }
+
+    if (
+      normalOptions.length + persistentOptions.length >
+        requiredOptions.length
+    ) {
+      parts.push("[flags]");
+    }
+
+    if (command.requiresSubcommand) {
+      parts.push("<command>");
+    } else {
+      const args = makeArray(command.args);
+      if (args.length > 0) {
+        parts.push(summarizeArguments(args));
+      }
+    }
+
+    const usageString = parts.join(" ");
+    return usageString;
+  })();
+
+  const indent = "  ";
+  const deepIndent = indent.repeat(2);
+
+  const longestOptionName = "";
+
+  return "";
+}
+
 function getSections(commands: NonEmptyArray<Command>): HelpSections {
   const command = commands[commands.length - 1];
 
@@ -361,13 +497,13 @@ function getSections(commands: NonEmptyArray<Command>): HelpSections {
 
   const subcommands: HelpSections["subcommands"] = command.subcommands
     ? command.subcommands
-        .filter((command) => !command.hidden)
-        .map((command) => [
-          makeArray1(command.name)
-            .sort((a, b) => a.length - b.length)
-            .join(", "),
-          command.description ?? defaultDesc,
-        ])
+      .filter((command) => !command.hidden)
+      .map((command) => [
+        makeArray1(command.name)
+          .sort((a, b) => a.length - b.length)
+          .join(", "),
+        command.description ?? defaultDesc,
+      ])
     : [];
 
   let persistentOptionObjects: Option[] = [];
@@ -399,7 +535,7 @@ function getSections(commands: NonEmptyArray<Command>): HelpSections {
     ]);
 
     optionObjects = (command.options ?? []).filter(
-      (option) => !option.hidden && !option.isPersistent
+      (option) => !option.hidden && !option.isPersistent,
     );
 
     options = optionObjects.map((option) => [
@@ -423,7 +559,7 @@ function getSections(commands: NonEmptyArray<Command>): HelpSections {
     if (options.length || persistentOptions.length) {
       parts.push("[flags]");
     }
-    if (command.requiresCommand) {
+    if (command.requiresSubcommand) {
       parts.push("<command>");
     } else {
       const args = makeArray(command.args);
@@ -462,21 +598,21 @@ export function formatHelpSections(sections: HelpSections): string {
 
   const longestOptionName = Math.max(
     ...sections.options.map(([name]) => name.length),
-    ...sections.persistentOptions.map(([name]) => name.length)
+    ...sections.persistentOptions.map(([name]) => name.length),
   );
   const minSpacingBetweenNameAndDesc = 2;
 
   const formatOptions = (options: [string, string][]) => {
     const lines = [];
-    const newline =
-      indent + " ".repeat(longestOptionName + minSpacingBetweenNameAndDesc);
+    const newline = indent +
+      " ".repeat(longestOptionName + minSpacingBetweenNameAndDesc);
     for (const [name, desc] of options) {
       const spaces = " ".repeat(
-        longestOptionName - name.length + minSpacingBetweenNameAndDesc
+        longestOptionName - name.length + minSpacingBetweenNameAndDesc,
       );
       const [head, ...tail] = desc.split("\n");
       const description = [head, ...tail.map((line) => newline + line)].join(
-        "\n"
+        "\n",
       );
       lines.push(`${indent}${name}${spaces}${description}`);
     }
@@ -486,17 +622,17 @@ export function formatHelpSections(sections: HelpSections): string {
   if (sections.subcommands.length > 0) {
     const lines = ["Commands:"];
     const longestName = Math.max(
-      ...sections.subcommands.map(([name]) => name.length)
+      ...sections.subcommands.map(([name]) => name.length),
     );
-    const newline =
-      indent + " ".repeat(longestName + minSpacingBetweenNameAndDesc);
+    const newline = indent +
+      " ".repeat(longestName + minSpacingBetweenNameAndDesc);
     for (const [name, desc] of sections.subcommands) {
       const spaces = " ".repeat(
-        longestName - name.length + minSpacingBetweenNameAndDesc
+        longestName - name.length + minSpacingBetweenNameAndDesc,
       );
       const [head, ...tail] = desc.split("\n\n")[0].split("\n");
       const description = [head, ...tail.map((line) => newline + line)].join(
-        "\n"
+        "\n",
       );
       lines.push(`${indent}${name}${spaces}${description}`);
     }
@@ -541,8 +677,9 @@ export function optionToString(option: Option): string {
   }
 
   if (option.requiresSeparator) {
-    const separator =
-      option.requiresSeparator === true ? "=" : option.requiresSeparator;
+    const separator = option.requiresSeparator === true
+      ? "="
+      : option.requiresSeparator;
     if (optArgs[0].isOptional) {
       return `${name}[${separator}${optArgs[0].name || "argument"}]`;
     } else {
@@ -553,7 +690,7 @@ export function optionToString(option: Option): string {
   return `${name} ${args}`;
 }
 
-export function summarizeArguments(args: Arg[]) {
+export function summarizeArguments(args: readonly Arg[]) {
   return args.map((arg) => argToString(arg)).join(" ");
 }
 

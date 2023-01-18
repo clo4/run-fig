@@ -81,7 +81,7 @@ export const $optionArg = (
   end: number,
   literal: string,
   option: string,
-  separator: string
+  separator: string,
 ): TokenOptionArg => ({
   kind: "option-arg",
   index,
@@ -97,7 +97,7 @@ export const $unknownOption = (
   start: number,
   end: number,
   literal: string,
-  validOptions: string[]
+  validOptions: string[],
 ): TokenUnknownOption => ({
   kind: "unknown-option",
   index,
@@ -111,7 +111,7 @@ export const $arg = (
   index: number,
   start: number,
   end: number,
-  literal: string
+  literal: string,
 ): TokenArg => ({
   kind: "arg",
   index,
@@ -124,7 +124,7 @@ export const $argSeparator = (
   index: number,
   start: number,
   end: number,
-  literal: string
+  literal: string,
 ): TokenArgSeparator => ({
   kind: "arg-separator",
   index,
@@ -135,13 +135,13 @@ export const $argSeparator = (
 
 export const $command = <
   Command extends MinCommand<Option>,
-  Option extends MinOption
+  Option extends MinOption,
 >(
   index: number,
   start: number,
   end: number,
   literal: string,
-  command: Command
+  command: Command,
 ): TokenCommand<Command> => {
   return {
     kind: "command",
@@ -158,7 +158,7 @@ export const $option = <Option extends MinOption>(
   start: number,
   end: number,
   literal: string,
-  option: Option
+  option: Option,
 ): TokenOption<Option> => {
   return {
     kind: "option",
@@ -192,7 +192,7 @@ export interface AnalyzeResult<Command, Option> {
  */
 export function analyze<
   Command extends MinCommand<Option>,
-  Option extends MinOption
+  Option extends MinOption,
 >(input: readonly string[], spec: Command): AnalyzeResult<Command, Option> {
   const tokens = [] as Token<Command, Option>[];
 
@@ -268,7 +268,8 @@ export function analyze<
 
       // Have to iterate over every command because a literal match should
       // always take precedence over a partial/prefix match.
-      commands: for (const command of localCommands) {
+      commands:
+      for (const command of localCommands) {
         if (typeof command.name === "string") {
           // Exact matches can short-circuit and return immediately
           if (command.name === name) {
@@ -348,7 +349,8 @@ export function analyze<
   // The maps are already empty, no reason to clear them.
   updateCurrentCommand(spec);
 
-  tokens: for (let index = 0; index < input.length; index++) {
+  tokens:
+  for (let index = 0; index < input.length; index++) {
     const token = input[index];
 
     // "--" as a token disables option & command parsing, so this needs
@@ -396,14 +398,15 @@ export function analyze<
         if (dashOption?.args && !hasOption(token.slice(0, 2))) {
           tokens.push($option(index, 0, 1, leadingChar, dashOption));
           tokens.push(
-            $optionArg(index, 1, token.length, token.slice(1), leadingChar, "")
+            $optionArg(index, 1, token.length, token.slice(1), leadingChar, ""),
           );
           continue tokens;
         }
 
         // 2.b. Parse as a chainable short option
         // If we fell through, the option wasn't `-` or `+`
-        chars: for (let char = 1; char < token.length; char++) {
+        chars:
+        for (let char = 1; char < token.length; char++) {
           const optionName = `${leadingChar}${token[char]}`;
           const option = getOption(optionName);
           if (!option) {
@@ -411,7 +414,7 @@ export function analyze<
               $unknownOption(index, char, char + 1, optionName, [
                 ...localOptions.keys(),
                 ...persistentOptions.keys(),
-              ])
+              ]),
             );
             continue chars;
           }
@@ -424,8 +427,9 @@ export function analyze<
 
           if (option.args && char < token.length - 1) {
             const remainingChars = token.slice(char + 1);
-            const sep =
-              separators.find((sep) => remainingChars.startsWith(sep)) || "";
+            const sep = separators.find((sep) =>
+              remainingChars.startsWith(sep)
+            ) || "";
             const argStartOffset = char + sep.length;
             tokens.push(
               $optionArg(
@@ -434,8 +438,8 @@ export function analyze<
                 token.length,
                 token.slice(argStartOffset + 1),
                 optionName,
-                sep
-              )
+                sep,
+              ),
             );
             break;
           }
@@ -456,7 +460,8 @@ export function analyze<
         let foundSep = null;
         let foundSepIndex = -1;
 
-        separators: for (const sep of separators) {
+        separators:
+        for (const sep of separators) {
           const index = token.indexOf(sep);
           if (index === -1) {
             continue separators;
@@ -478,8 +483,8 @@ export function analyze<
                 0,
                 foundSepIndex,
                 token.slice(0, foundSepIndex),
-                option
-              )
+                option,
+              ),
             );
             tokens.push(
               $optionArg(
@@ -488,8 +493,8 @@ export function analyze<
                 token.length,
                 token.slice(foundSepIndex + foundSep.length),
                 optionName,
-                foundSep
-              )
+                foundSep,
+              ),
             );
             continue tokens;
           } else if (posixCompliantOptions) {
@@ -500,7 +505,7 @@ export function analyze<
               $unknownOption(index, 0, foundSepIndex, optionName, [
                 ...localOptions.keys(),
                 ...persistentOptions.keys(),
-              ])
+              ]),
             );
             tokens.push(
               $optionArg(
@@ -509,8 +514,8 @@ export function analyze<
                 token.length,
                 token.slice(foundSepIndex + foundSep.length),
                 optionName,
-                foundSep
-              )
+                foundSep,
+              ),
             );
             continue tokens;
           }
@@ -530,7 +535,7 @@ export function analyze<
               $unknownOption(index, 0, token.length, token, [
                 ...localOptions.keys(),
                 ...persistentOptions.keys(),
-              ])
+              ]),
             );
             continue tokens;
           }
