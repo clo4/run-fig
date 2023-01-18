@@ -5,8 +5,8 @@
  */
 
 import { Arg, Option, SingleOrArray, Subcommand } from "./types.ts";
-import { assert, isArray, makeArray } from "./util.ts";
-import { getMaxArgs, getMinArgs } from "./parse.ts";
+import { isArray, makeArray } from "./collections.ts";
+import { assert, getMaxArgs, getMinArgs } from "./parse.ts";
 
 const repr = JSON.stringify;
 
@@ -63,10 +63,12 @@ function forEachSubcommand(
 }
 
 function joinNames(names: SingleOrArray<string>) {
-  return makeArray(names).sort((a, b) => a.length - b.length).join("|");
+  return makeArray(names)
+    .sort((a, b) => a.length - b.length)
+    .join("|");
 }
 
-function namedArrayToString(...parts: ({ name: SingleOrArray<string> })[]) {
+function namedArrayToString(...parts: { name: SingleOrArray<string> }[]) {
   const names = parts.map((named) => joinNames(named.name));
   return `\`${names.join(" ")}\``;
 }
@@ -83,7 +85,9 @@ export function assertRequiredArgumentsDoNotFollowOptionalArguments(
         // deno-fmt-ignore
         assert(
           arg.isOptional,
-          `In ${namedArrayToString(...path)}, argument ${arg.name || index} is required, but it must be optional since the argument at index ${firstOptionalArgIndex} is optional`,
+          `In ${namedArrayToString(...path)}, argument ${
+            arg.name || index
+          } is required, but it must be optional since the argument at index ${firstOptionalArgIndex} is optional`
         );
       } else if (arg.isOptional) {
         remainingMustBeOptional = true;
@@ -100,7 +104,10 @@ export function assertRepeatableOptionsHaveNoArguments(spec: Subcommand): void {
       // deno-fmt-ignore
       assert(
         !(option.args && option.isRepeatable),
-        `The option ${namedArrayToString(...path, option)} (index ${index}) has arguments and is repeatable. Repeatable options cannot have arguments, but you can use a variadic argument instead.`,
+        `The option ${namedArrayToString(
+          ...path,
+          option
+        )} (index ${index}) has arguments and is repeatable. Repeatable options cannot have arguments, but you can use a variadic argument instead.`
       );
     }
   });
@@ -116,17 +123,26 @@ export function assertRepeatableOptionsArePositiveIntegers(
         // deno-fmt-ignore
         assert(
           Number.isSafeInteger(option.isRepeatable),
-          `The option ${namedArrayToString(...path, option)} (index ${index}) has its \`isRepeatable\` value set to a number that is not an integer`,
+          `The option ${namedArrayToString(
+            ...path,
+            option
+          )} (index ${index}) has its \`isRepeatable\` value set to a number that is not an integer`
         );
         // deno-fmt-ignore
         assert(
           !(option.isRepeatable < 1),
-          `The option ${namedArrayToString(...path, option)} (index ${index}) has its \`isRepeatable\` value set to a number below 1, which means it can't be used at all`,
+          `The option ${namedArrayToString(
+            ...path,
+            option
+          )} (index ${index}) has its \`isRepeatable\` value set to a number below 1, which means it can't be used at all`
         );
         // deno-fmt-ignore
         assert(
           option.isRepeatable !== 1,
-          `The option ${namedArrayToString(...path, option)} (index ${index}) has its \`isRepeatable\` value set to 1, which is no different that omitting the property entirely`,
+          `The option ${namedArrayToString(
+            ...path,
+            option
+          )} (index ${index}) has its \`isRepeatable\` value set to 1, which is no different that omitting the property entirely`
         );
       }
     }
@@ -142,7 +158,10 @@ export function assertOptionsHaveLocallyUniqueNames(spec: Subcommand): void {
         // deno-fmt-ignore
         assert(
           !optionNames.has(name),
-          `Option ${namedArrayToString(...path, option)} (index ${index}) has a non-unique name, '${name}'. Option names must be unique.`,
+          `Option ${namedArrayToString(
+            ...path,
+            option
+          )} (index ${index}) has a non-unique name, '${name}'. Option names must be unique.`
         );
         optionNames.add(name);
       }
@@ -156,20 +175,27 @@ export function assertOptionsDoNotShadowPersistentOptions(
 ): void {
   forEachOptionArray(spec, (options, path) => {
     const persistentOptionNames = new Set(
-      path.slice(0, -1).flatMap((subcommand) =>
-        subcommand.options
-          ? subcommand.options
-            .filter((option) => option.isPersistent)
-            .flatMap((option) => option.name)
-          : []
-      ),
+      path
+        .slice(0, -1)
+        .flatMap((subcommand) =>
+          subcommand.options
+            ? subcommand.options
+              .filter((option) => option.isPersistent)
+              .flatMap((option) => option.name)
+            : []
+        ),
     );
     for (const [index, option] of makeArray(options).entries()) {
       for (const name of makeArray(option.name)) {
         // deno-fmt-ignore
         assert(
           !persistentOptionNames.has(name),
-          `The option ${namedArrayToString(...path, option)} (index ${index}) shadows the name of a persistent option, ${repr(name)}. Option names can't shadow persistent options.`,
+          `The option ${namedArrayToString(
+            ...path,
+            option
+          )} (index ${index}) shadows the name of a persistent option, ${repr(
+            name
+          )}. Option names can't shadow persistent options.`
         );
       }
     }
@@ -187,7 +213,12 @@ export function assertSubcommandsHaveLocallyUniqueNames(
         // deno-fmt-ignore
         assert(
           !names.has(name),
-          `The subcommand ${namedArrayToString(...path, subcommand)} (index ${index}) has a non-unique name, ${repr(name)}. Subcommand names must be unique among the subcommands in the same array.`
+          `The subcommand ${namedArrayToString(
+            ...path,
+            subcommand
+          )} (index ${index}) has a non-unique name, ${repr(
+            name
+          )}. Subcommand names must be unique among the subcommands in the same array.`
         );
         names.add(name);
       }
@@ -216,8 +247,23 @@ export function assertLongOptionNamesDoNotStartWithSingleDash(
       for (const name of makeArray(option.name)) {
         // deno-fmt-ignore
         assert(
-          !((name.startsWith("-") || name.startsWith("+"))&& !name.startsWith("--") && name.length > 2),
-          `Option ${namedArrayToString(...path, option)} (index ${index}) has a name that the parser is unable to parse, as it starts with a single '${name[0]}'. Tokens starting with that character are interpreted as short options, so passing '${name}' will be interpreted as '${[...name.slice(1)].map(letter => name[0] + letter).join(" ")}'. \`parserDirectives.flagsArePosixNoncompliant\` must be \`true\` on an ancestor command.`
+          !(
+            (name.startsWith("-") || name.startsWith("+")) &&
+            !name.startsWith("--") &&
+            name.length > 2
+          ),
+          `Option ${namedArrayToString(
+            ...path,
+            option
+          )} (index ${index}) has a name that the parser is unable to parse, as it starts with a single '${
+            name[0]
+          }'. Tokens starting with that character are interpreted as short options, so passing '${name}' will be interpreted as '${[
+            ...name.slice(1),
+          ]
+            .map((letter) => name[0] + letter)
+            .join(
+              " "
+            )}'. \`parserDirectives.flagsArePosixNoncompliant\` must be \`true\` on an ancestor command.`
         );
       }
     }
@@ -227,9 +273,7 @@ export function assertLongOptionNamesDoNotStartWithSingleDash(
 /**
  * Asserts that all option names start with dashes
  */
-export function assertOptionNamesStartWithDashes(
-  spec: Subcommand,
-): void {
+export function assertOptionNamesStartWithDashes(spec: Subcommand): void {
   forEachOptionArray(spec, (options, path) => {
     // TODO: check if this is correct
     const skip = path
@@ -244,7 +288,10 @@ export function assertOptionNamesStartWithDashes(
         // deno-fmt-ignore
         assert(
           name.startsWith("-") || name.startsWith("+"),
-          `Option ${namedArrayToString(...path, option)} (index ${index}) doesn't start with a dash or plus, the parser will be unable to find matching options without \`parserDirectives.flagsAreNonPosixCompliant\` being set to 'true' on an ancestor command`
+          `Option ${namedArrayToString(
+            ...path,
+            option
+          )} (index ${index}) doesn't start with a dash or plus, the parser will be unable to find matching options without \`parserDirectives.flagsAreNonPosixCompliant\` being set to 'true' on an ancestor command`
         );
       }
     }
@@ -254,16 +301,17 @@ export function assertOptionNamesStartWithDashes(
 /**
  * Asserts that nothing is named exactly '--'
  */
-export function assertNothingIsNamedDashDash(
-  spec: Subcommand,
-): void {
+export function assertNothingIsNamedDashDash(spec: Subcommand): void {
   forEachOptionArray(spec, (options, path) => {
     for (const [index, option] of makeArray(options).entries()) {
       for (const name of makeArray(option.name)) {
         // deno-fmt-ignore
         assert(
           name !== "--",
-          `Option ${namedArrayToString(...path, option)} (index ${index}) is named '--', which is a special instruction to the parser to treat all following tokens as arguments. This will never be matched`
+          `Option ${namedArrayToString(
+            ...path,
+            option
+          )} (index ${index}) is named '--', which is a special instruction to the parser to treat all following tokens as arguments. This will never be matched`
         );
       }
     }
@@ -274,7 +322,10 @@ export function assertNothingIsNamedDashDash(
         // deno-fmt-ignore
         assert(
           name !== "--",
-          `Subcommand ${namedArrayToString(...path, subcommand)} (index ${index}) is named '--', which is a special instruction to the parser to treat all following tokens as arguments. This will never be matched`
+          `Subcommand ${namedArrayToString(
+            ...path,
+            subcommand
+          )} (index ${index}) is named '--', which is a special instruction to the parser to treat all following tokens as arguments. This will never be matched`
         );
       }
     }
@@ -297,7 +348,10 @@ export function assertOptionArgSeparatorsHaveCharacters(
         // deno-fmt-ignore
         assert(
           separator !== "",
-          `Subcommand ${namedArrayToString(...path, subcommand)} (index ${index}) has an empty string for an option arg separator at index ${sepIndex}. If you wanted to disable option arg separators, use an empty array.`
+          `Subcommand ${namedArrayToString(
+            ...path,
+            subcommand
+          )} (index ${index}) has an empty string for an option arg separator at index ${sepIndex}. If you wanted to disable option arg separators, use an empty array.`
         );
       }
     }
@@ -307,9 +361,7 @@ export function assertOptionArgSeparatorsHaveCharacters(
 /**
  * Asserts that options named "+" or "-" takes one arg
  */
-export function assertPlusMinusOptionsTakeOneArg(
-  spec: Subcommand,
-): void {
+export function assertPlusMinusOptionsTakeOneArg(spec: Subcommand): void {
   forEachOptionArray(spec, (options, path) => {
     // TODO: check if this is correct
     const skip = path
@@ -327,7 +379,10 @@ export function assertPlusMinusOptionsTakeOneArg(
         // deno-fmt-ignore
         assert(
           option.args && !Array.isArray(option.args),
-          `Option ${namedArrayToString(...path, option)} (index ${index}) must take exactly one argument`
+          `Option ${namedArrayToString(
+            ...path,
+            option
+          )} (index ${index}) must take exactly one argument`
         );
       }
     }
@@ -337,16 +392,17 @@ export function assertPlusMinusOptionsTakeOneArg(
 /**
  * Asserts that names do not have leading or trailing whitespace
  */
-export function assertNamesHaveNoExtraWhitespace(
-  spec: Subcommand,
-): void {
+export function assertNamesHaveNoExtraWhitespace(spec: Subcommand): void {
   forEachOptionArray(spec, (options, path) => {
     for (const [index, option] of makeArray(options).entries()) {
       for (const name of makeArray(option.name)) {
         // deno-fmt-ignore
         assert(
           name === name.trim(),
-          `Option ${namedArrayToString(...path, option)} (index ${index}) has a name with extra whitespace`
+          `Option ${namedArrayToString(
+            ...path,
+            option
+          )} (index ${index}) has a name with extra whitespace`
         );
       }
     }
@@ -358,7 +414,10 @@ export function assertNamesHaveNoExtraWhitespace(
         // deno-fmt-ignore
         assert(
           name === name.trim(),
-          `Subcommand ${namedArrayToString(...path, subcommand)} (index ${index}) has a name with extra whitespace`
+          `Subcommand ${namedArrayToString(
+            ...path,
+            subcommand
+          )} (index ${index}) has a name with extra whitespace`
         );
       }
     }
@@ -369,7 +428,9 @@ export function assertNamesHaveNoExtraWhitespace(
         // deno-fmt-ignore
         assert(
           name === name.trim(),
-          `Arg in ${namedArrayToString(...path)} (at index ${index}) has a name with extra whitespace`
+          `Arg in ${namedArrayToString(
+            ...path
+          )} (at index ${index}) has a name with extra whitespace`
         );
       }
     }
@@ -379,16 +440,17 @@ export function assertNamesHaveNoExtraWhitespace(
 /**
  * Asserts that everything has a description
  */
-export function assertEverythingHasDescription(
-  spec: Subcommand,
-): void {
+export function assertEverythingHasDescription(spec: Subcommand): void {
   assert(spec.description, `Spec has no description`);
   forEachOptionArray(spec, (options, path) => {
     for (const [index, option] of makeArray(options).entries()) {
       // deno-fmt-ignore
       assert(
         option.description,
-        `Option ${namedArrayToString(...path, option)} (index ${index}) has no description`
+        `Option ${namedArrayToString(
+          ...path,
+          option
+        )} (index ${index}) has no description`
       );
     }
   });
@@ -398,7 +460,10 @@ export function assertEverythingHasDescription(
       // deno-fmt-ignore
       assert(
         subcommand.description,
-        `Subcommand ${namedArrayToString(...path, subcommand)} (index ${index}) has no description`
+        `Subcommand ${namedArrayToString(
+          ...path,
+          subcommand
+        )} (index ${index}) has no description`
       );
     }
   });
@@ -407,9 +472,7 @@ export function assertEverythingHasDescription(
 /**
  * Asserts that descriptions have line length < 69
  */
-export function assertDescriptionLineLengthUnder69(
-  spec: Subcommand,
-): void {
+export function assertDescriptionLineLengthUnder69(spec: Subcommand): void {
   if (spec.description) {
     // deno-fmt-ignore
     assert(
@@ -423,7 +486,10 @@ export function assertDescriptionLineLengthUnder69(
         // deno-fmt-ignore
         assert(
           option.description.split("\n").every((line) => line.length <= 68),
-          `Option ${namedArrayToString(...path, option)} (index ${index}) has a description line over 68 characters`
+          `Option ${namedArrayToString(
+            ...path,
+            option
+          )} (index ${index}) has a description line over 68 characters`
         );
       }
     }
@@ -435,7 +501,10 @@ export function assertDescriptionLineLengthUnder69(
         // deno-fmt-ignore
         assert(
           subcommand.description.split("\n").every((line) => line.length <= 68),
-          `Subcommand ${namedArrayToString(...path, subcommand)} (index ${index}) has a description line over 68 characters`
+          `Subcommand ${namedArrayToString(
+            ...path,
+            subcommand
+          )} (index ${index}) has a description line over 68 characters`
         );
       }
     }
@@ -450,13 +519,23 @@ export function assertRequiresSeparatorTakesOneArg(spec: Subcommand): void {
         // deno-fmt-ignore
         assert(
           getMinArgs(args) <= 1,
-          `Option ${namedArrayToString(...path, option)} (index ${index}) takes a minimum of ${getMinArgs(args)} arg(s), but because of requiresSeparator, it must instead be 0 or 1`,
+          `Option ${namedArrayToString(
+            ...path,
+            option
+          )} (index ${index}) takes a minimum of ${getMinArgs(
+            args
+          )} arg(s), but because of requiresSeparator, it must instead be 0 or 1`
         );
         // deno-fmt-ignore
         assert(
           getMaxArgs(args) === 1,
-          `Option ${namedArrayToString(...path, option)} (index ${index}) takes a maximum of ${getMaxArgs(args)} arg(s), but because of requiresSeparator, it's only able to take 1`,
-        )
+          `Option ${namedArrayToString(
+            ...path,
+            option
+          )} (index ${index}) takes a maximum of ${getMaxArgs(
+            args
+          )} arg(s), but because of requiresSeparator, it's only able to take 1`
+        );
       }
     }
   });
@@ -468,8 +547,10 @@ export function assertCommonOptionsArePersistent(spec: Subcommand): void {
     b: string | readonly string[],
   ) => {
     if (isArray(a) && isArray(b)) {
-      return a.every((item) => b.includes(item)) &&
-        b.every((item) => a.includes(item));
+      return (
+        a.every((item) => b.includes(item)) &&
+        b.every((item) => a.includes(item))
+      );
     }
     // This might compare a string to an array, but if that happens the correct
     // result is `false` anyway, so this behaves correctly
@@ -482,10 +563,7 @@ export function assertCommonOptionsArePersistent(spec: Subcommand): void {
     }
     for (const option of makeArray(subcommand.options)) {
       const allChildSubcommands: Subcommand[] = [];
-      forEachSubcommand(
-        subcommand,
-        (cmd) => allChildSubcommands.push(cmd),
-      );
+      forEachSubcommand(subcommand, (cmd) => allChildSubcommands.push(cmd));
 
       const allShareOption = allChildSubcommands.every((cmd) =>
         makeArray(cmd.options).some((o) => isSameName(option.name, o.name))
@@ -511,35 +589,43 @@ ${failures.map(([_, line]) => " * " + line).join("\n")}
  * Asserts that references to other options by name actually refer to options
  * that exist in scope
  */
-export function assertOptionNameReferencesExist(
-  spec: Subcommand,
-): void {
+export function assertOptionNameReferencesExist(spec: Subcommand): void {
   forEachOptionArray(spec, (options, path) => {
-    const optionNames = new Set(
-      [
-        ...path.slice(0, -1).flatMap((subcommand) =>
+    const optionNames = new Set([
+      ...path
+        .slice(0, -1)
+        .flatMap((subcommand) =>
           subcommand.options
             ? subcommand.options
               .filter((option) => option.isPersistent)
               .flatMap((option) => option.name)
             : []
         ),
-        ...options.flatMap((option) => option.name),
-      ],
-    );
+      ...options.flatMap((option) => option.name),
+    ]);
     for (const [index, option] of makeArray(options).entries()) {
       for (const name of makeArray(option.dependsOn)) {
         // deno-fmt-ignore
         assert(
           optionNames.has(name),
-          `The option ${namedArrayToString(...path, option)} (index ${index}) depends on an option named ${repr(name)}, which doesn't exist in its scope`,
+          `The option ${namedArrayToString(
+            ...path,
+            option
+          )} (index ${index}) depends on an option named ${repr(
+            name
+          )}, which doesn't exist in its scope`
         );
       }
       for (const name of makeArray(option.exclusiveOn)) {
         // deno-fmt-ignore
         assert(
           optionNames.has(name),
-          `The option ${namedArrayToString(...path, option)} (index ${index}) is exclusive on an option named ${repr(name)}, which doesn't exist in its scope`,
+          `The option ${namedArrayToString(
+            ...path,
+            option
+          )} (index ${index}) is exclusive on an option named ${repr(
+            name
+          )}, which doesn't exist in its scope`
         );
       }
     }
@@ -565,7 +651,9 @@ export function assertPrefixMatchCommandsHaveNoArguments(
     assert(
       !(subcommand.subcommands && subcommand.args),
       `The command ${
-        namedArrayToString(...path)
+        namedArrayToString(
+          ...path,
+        )
       } has at least one argument and subcommand, but matches subcommands based on unique prefixes. To fix this, use \`parserDirectives: { subcommandsMatchUniquePrefix: false }\``,
     );
   });
@@ -641,8 +729,8 @@ export function test(
   return async (t) => {
     await t.step(
       getName(namingStyle, {
-        "sentence": "Required arguments don't follow optional arguments",
-        "function": "assertRequiredArgumentsDoNotFollowOptionalArguments",
+        sentence: "Required arguments don't follow optional arguments",
+        function: "assertRequiredArgumentsDoNotFollowOptionalArguments",
       }),
       () => {
         assertRequiredArgumentsDoNotFollowOptionalArguments(spec);
@@ -650,8 +738,8 @@ export function test(
     );
     await t.step(
       getName(namingStyle, {
-        "sentence": "Repeatable options don't have arguments",
-        "function": "assertRepeatableOptionsHaveNoArguments",
+        sentence: "Repeatable options don't have arguments",
+        function: "assertRepeatableOptionsHaveNoArguments",
       }),
       () => {
         assertRepeatableOptionsHaveNoArguments(spec);
@@ -659,9 +747,9 @@ export function test(
     );
     await t.step(
       getName(namingStyle, {
-        "sentence":
+        sentence:
           "Repeatable options that are numbers are integers greater than 1",
-        "function": "assertRepeatableOptionsArePositiveIntegers",
+        function: "assertRepeatableOptionsArePositiveIntegers",
       }),
       () => {
         assertRepeatableOptionsArePositiveIntegers(spec);
@@ -669,8 +757,8 @@ export function test(
     );
     await t.step(
       getName(namingStyle, {
-        "sentence": "Long option names don't start with a single dash",
-        "function": "assertLongOptionNamesDoNotStartWithSingleDash",
+        sentence: "Long option names don't start with a single dash",
+        function: "assertLongOptionNamesDoNotStartWithSingleDash",
       }),
       () => {
         assertLongOptionNamesDoNotStartWithSingleDash(spec);
@@ -678,8 +766,8 @@ export function test(
     );
     await t.step(
       getName(namingStyle, {
-        "sentence": "Option names all start with dashes",
-        "function": "assertOptionNamesStartWithDashes",
+        sentence: "Option names all start with dashes",
+        function: "assertOptionNamesStartWithDashes",
       }),
       () => {
         assertOptionNamesStartWithDashes(spec);
@@ -687,8 +775,8 @@ export function test(
     );
     await t.step(
       getName(namingStyle, {
-        "sentence": "Options have locally unique names",
-        "function": "assertOptionsHaveLocallyUniqueNames",
+        sentence: "Options have locally unique names",
+        function: "assertOptionsHaveLocallyUniqueNames",
       }),
       () => {
         assertOptionsHaveLocallyUniqueNames(spec);
@@ -697,8 +785,8 @@ export function test(
     if (!allowShadowingPersistentOptions) {
       await t.step(
         getName(namingStyle, {
-          "sentence": "Options don't shadow persistent options",
-          "function": "assertOptionsDoNotShadowPersistentOptions",
+          sentence: "Options don't shadow persistent options",
+          function: "assertOptionsDoNotShadowPersistentOptions",
         }),
         () => {
           assertOptionsDoNotShadowPersistentOptions(spec);
@@ -707,8 +795,8 @@ export function test(
     }
     await t.step(
       getName(namingStyle, {
-        "sentence": "Subcommands have locally unique names",
-        "function": "assertSubcommandsHaveLocallyUniqueNames",
+        sentence: "Subcommands have locally unique names",
+        function: "assertSubcommandsHaveLocallyUniqueNames",
       }),
       () => {
         assertSubcommandsHaveLocallyUniqueNames(spec);
@@ -716,8 +804,8 @@ export function test(
     );
     await t.step(
       getName(namingStyle, {
-        "sentence": "Nothing is named '--'",
-        "function": "assertNothingIsNamedDashDash",
+        sentence: "Nothing is named '--'",
+        function: "assertNothingIsNamedDashDash",
       }),
       () => {
         assertNothingIsNamedDashDash(spec);
@@ -725,8 +813,8 @@ export function test(
     );
     await t.step(
       getName(namingStyle, {
-        "sentence": "Option arg separators are not an empty string",
-        "function": "assertOptionArgSeparatorsHaveCharacters",
+        sentence: "Option arg separators are not an empty string",
+        function: "assertOptionArgSeparatorsHaveCharacters",
       }),
       () => {
         assertOptionArgSeparatorsHaveCharacters(spec);
@@ -734,8 +822,8 @@ export function test(
     );
     await t.step(
       getName(namingStyle, {
-        "sentence": "Options named '-' or '+' take exactly one argument",
-        "function": "assertPlusMinusOptionsTakeOneArg",
+        sentence: "Options named '-' or '+' take exactly one argument",
+        function: "assertPlusMinusOptionsTakeOneArg",
       }),
       () => {
         assertPlusMinusOptionsTakeOneArg(spec);
@@ -743,8 +831,8 @@ export function test(
     );
     await t.step(
       getName(namingStyle, {
-        "sentence": "Names have no extra leading or trailing whitespace",
-        "function": "assertNamesHaveNoExtraWhitespace",
+        sentence: "Names have no extra leading or trailing whitespace",
+        function: "assertNamesHaveNoExtraWhitespace",
       }),
       () => {
         assertNamesHaveNoExtraWhitespace(spec);
@@ -753,8 +841,8 @@ export function test(
     if (!allowNoDescription) {
       await t.step(
         getName(namingStyle, {
-          "sentence": "Everything has a description",
-          "function": "assertEverythingHasDescription",
+          sentence: "Everything has a description",
+          function: "assertEverythingHasDescription",
         }),
         () => {
           assertEverythingHasDescription(spec);
@@ -764,9 +852,9 @@ export function test(
     if (!allowLongDescriptionLines) {
       await t.step(
         getName(namingStyle, {
-          "sentence":
+          sentence:
             "Each line in descriptions is less than or equal to 68 characters",
-          "function": "assertDescriptionLineLengthUnder69",
+          function: "assertDescriptionLineLengthUnder69",
         }),
         () => {
           assertDescriptionLineLengthUnder69(spec);
@@ -775,9 +863,8 @@ export function test(
     }
     await t.step(
       getName(namingStyle, {
-        "sentence":
-          "Options with `requiresSeparator` take exactly one argument",
-        "function": "assertRequiresSeparatorTakesOneArg",
+        sentence: "Options with `requiresSeparator` take exactly one argument",
+        function: "assertRequiresSeparatorTakesOneArg",
       }),
       () => {
         assertRequiresSeparatorTakesOneArg(spec);
@@ -785,8 +872,8 @@ export function test(
     );
     await t.step(
       getName(namingStyle, {
-        "sentence": "Common options are not defined on every subcommand",
-        "function": "assertCommonOptionsArePersistent",
+        sentence: "Common options are not defined on every subcommand",
+        function: "assertCommonOptionsArePersistent",
       }),
       () => {
         assertCommonOptionsArePersistent(spec);
@@ -794,8 +881,8 @@ export function test(
     );
     await t.step(
       getName(namingStyle, {
-        "sentence": "References to other options by name are valid",
-        "function": "assertOptionNameReferencesExist",
+        sentence: "References to other options by name are valid",
+        function: "assertOptionNameReferencesExist",
       }),
       () => {
         assertOptionNameReferencesExist(spec);
@@ -804,9 +891,9 @@ export function test(
     if (!allowMatchingSubcommandPrefixAndArgs) {
       await t.step(
         getName(namingStyle, {
-          "sentence":
+          sentence:
             "Commands with `subcommandsMatchUniquePrefix` don't have arguments and subcommands",
-          "function": "assertPrefixMatchCommandsHaveNoArguments",
+          function: "assertPrefixMatchCommandsHaveNoArguments",
         }),
         () => {
           assertPrefixMatchCommandsHaveNoArguments(spec);

@@ -1250,7 +1250,7 @@ Deno.test({
 
 Deno.test({
   name:
-    "parse: requiresSubcommand doesn't return Fig.usage when there is an action",
+    "parse: requiresSubcommand doesn't return CLI.usage when there is an action",
   fn() {
     const action = () => {};
     const spec: Spec = {

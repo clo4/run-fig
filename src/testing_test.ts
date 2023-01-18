@@ -1,4 +1,4 @@
-import * as Fig from "./testing.ts";
+import * as CLI from "./testing.ts";
 import { helpCommand } from "./help.ts";
 import type { Option } from "./types.ts";
 import { assertThrows } from "./deps/std_testing_asserts.ts";
@@ -6,30 +6,30 @@ import { assertThrows } from "./deps/std_testing_asserts.ts";
 // This should succeed. If it fails, there's either a bug with the command
 // or the testing logic, but either way it's a bug.
 Deno.test(
-  "testing: Run Fig.test on Fig.help",
-  Fig.test(helpCommand),
+  "testing: Run CLI.test on CLI.help",
+  CLI.test(helpCommand),
 );
 
 Deno.test("testing: assertOptionsHaveLocallyUniqueNames", () => {
   // Valid specs
-  Fig.assertOptionsHaveLocallyUniqueNames({ name: "test" });
-  Fig.assertOptionsHaveLocallyUniqueNames({
+  CLI.assertOptionsHaveLocallyUniqueNames({ name: "test" });
+  CLI.assertOptionsHaveLocallyUniqueNames({
     name: "test",
     options: [{ name: "one" }],
   });
-  Fig.assertOptionsHaveLocallyUniqueNames({
+  CLI.assertOptionsHaveLocallyUniqueNames({
     name: "test",
     options: [{ name: "one" }, { name: "two" }],
   });
   // Invalid specs
   assertThrows(() => {
-    Fig.assertOptionsHaveLocallyUniqueNames({
+    CLI.assertOptionsHaveLocallyUniqueNames({
       name: "test",
       options: [{ name: "one" }, { name: "one" }],
     });
   });
   assertThrows(() => {
-    Fig.assertOptionsHaveLocallyUniqueNames({
+    CLI.assertOptionsHaveLocallyUniqueNames({
       name: "test",
       options: [{ name: ["one", "one"] }],
     });
@@ -38,12 +38,12 @@ Deno.test("testing: assertOptionsHaveLocallyUniqueNames", () => {
 
 Deno.test("testing: assertRepeatableOptionsHaveNoArguments", () => {
   // Valid specs
-  Fig.assertRepeatableOptionsHaveNoArguments({ name: "test" });
-  Fig.assertRepeatableOptionsHaveNoArguments({
+  CLI.assertRepeatableOptionsHaveNoArguments({ name: "test" });
+  CLI.assertRepeatableOptionsHaveNoArguments({
     name: "test",
     options: [{ name: "one" }],
   });
-  Fig.assertRepeatableOptionsHaveNoArguments({
+  CLI.assertRepeatableOptionsHaveNoArguments({
     name: "test",
     options: [
       { name: "one", isRepeatable: true },
@@ -52,7 +52,7 @@ Deno.test("testing: assertRepeatableOptionsHaveNoArguments", () => {
   });
   // Invalid specs
   assertThrows(() => {
-    Fig.assertRepeatableOptionsHaveNoArguments({
+    CLI.assertRepeatableOptionsHaveNoArguments({
       name: "test",
       options: [
         { name: "one", isRepeatable: true, args: {} },
@@ -63,14 +63,14 @@ Deno.test("testing: assertRepeatableOptionsHaveNoArguments", () => {
 
 Deno.test("testing: assertSubcommandsHaveLocallyUniqueNames", () => {
   // Valid specs
-  Fig.assertSubcommandsHaveLocallyUniqueNames({ name: "test" });
-  Fig.assertSubcommandsHaveLocallyUniqueNames({
+  CLI.assertSubcommandsHaveLocallyUniqueNames({ name: "test" });
+  CLI.assertSubcommandsHaveLocallyUniqueNames({
     name: "test",
     subcommands: [{ name: "one" }, { name: "two" }],
   });
   // Invalid specs
   assertThrows(() => {
-    Fig.assertSubcommandsHaveLocallyUniqueNames({
+    CLI.assertSubcommandsHaveLocallyUniqueNames({
       name: "test",
       subcommands: [
         { name: "one" },
@@ -79,7 +79,7 @@ Deno.test("testing: assertSubcommandsHaveLocallyUniqueNames", () => {
     });
   });
   assertThrows(() => {
-    Fig.assertSubcommandsHaveLocallyUniqueNames({
+    CLI.assertSubcommandsHaveLocallyUniqueNames({
       name: "test",
       subcommands: [
         { name: ["one", "one"] },
@@ -90,15 +90,15 @@ Deno.test("testing: assertSubcommandsHaveLocallyUniqueNames", () => {
 
 Deno.test("testing: assertOptionsDoNotShadowPersistentOptions", () => {
   // Valid specs
-  Fig.assertOptionsDoNotShadowPersistentOptions({ name: "test" });
-  Fig.assertOptionsDoNotShadowPersistentOptions({
+  CLI.assertOptionsDoNotShadowPersistentOptions({ name: "test" });
+  CLI.assertOptionsDoNotShadowPersistentOptions({
     name: "test",
     options: [
       { name: "one", isPersistent: true },
       { name: "two" },
     ],
   });
-  Fig.assertOptionsDoNotShadowPersistentOptions({
+  CLI.assertOptionsDoNotShadowPersistentOptions({
     name: "test",
     options: [
       { name: "one", isPersistent: true },
@@ -108,7 +108,7 @@ Deno.test("testing: assertOptionsDoNotShadowPersistentOptions", () => {
       options: [{ name: "two" }],
     }],
   });
-  Fig.assertOptionsDoNotShadowPersistentOptions({
+  CLI.assertOptionsDoNotShadowPersistentOptions({
     name: "test",
     options: [
       // This assertion actually doesn't care about this, because it should
@@ -119,7 +119,7 @@ Deno.test("testing: assertOptionsDoNotShadowPersistentOptions", () => {
   });
   // Invalid specs
   assertThrows(() => {
-    Fig.assertOptionsDoNotShadowPersistentOptions({
+    CLI.assertOptionsDoNotShadowPersistentOptions({
       name: "test",
       options: [
         { name: "one", isPersistent: true },
@@ -134,8 +134,8 @@ Deno.test("testing: assertOptionsDoNotShadowPersistentOptions", () => {
 
 Deno.test("testing: assertRepeatableOptionsArePositiveIntegers", () => {
   // Valid specs
-  Fig.assertRepeatableOptionsArePositiveIntegers({ name: "test" });
-  Fig.assertRepeatableOptionsArePositiveIntegers({
+  CLI.assertRepeatableOptionsArePositiveIntegers({ name: "test" });
+  CLI.assertRepeatableOptionsArePositiveIntegers({
     name: "test",
     options: [
       { name: "one" },
@@ -143,7 +143,7 @@ Deno.test("testing: assertRepeatableOptionsArePositiveIntegers", () => {
       { name: "three", isRepeatable: 2 },
     ],
   });
-  Fig.assertRepeatableOptionsArePositiveIntegers({
+  CLI.assertRepeatableOptionsArePositiveIntegers({
     name: "test",
     options: [
       { name: "one", isRepeatable: true },
@@ -155,7 +155,7 @@ Deno.test("testing: assertRepeatableOptionsArePositiveIntegers", () => {
   });
   // Invalid specs
   assertThrows(() => {
-    Fig.assertRepeatableOptionsArePositiveIntegers({
+    CLI.assertRepeatableOptionsArePositiveIntegers({
       name: "test",
       options: [
         { name: "one", isRepeatable: 0 },
@@ -163,7 +163,7 @@ Deno.test("testing: assertRepeatableOptionsArePositiveIntegers", () => {
     });
   });
   assertThrows(() => {
-    Fig.assertRepeatableOptionsArePositiveIntegers({
+    CLI.assertRepeatableOptionsArePositiveIntegers({
       name: "test",
       options: [
         { name: "one", isRepeatable: 1 },
@@ -171,7 +171,7 @@ Deno.test("testing: assertRepeatableOptionsArePositiveIntegers", () => {
     });
   });
   assertThrows(() => {
-    Fig.assertRepeatableOptionsArePositiveIntegers({
+    CLI.assertRepeatableOptionsArePositiveIntegers({
       name: "test",
       options: [
         { name: "one", isRepeatable: -1 },
@@ -179,7 +179,7 @@ Deno.test("testing: assertRepeatableOptionsArePositiveIntegers", () => {
     });
   });
   assertThrows(() => {
-    Fig.assertRepeatableOptionsArePositiveIntegers({
+    CLI.assertRepeatableOptionsArePositiveIntegers({
       name: "test",
       options: [
         { name: "one", isRepeatable: NaN },
@@ -187,7 +187,7 @@ Deno.test("testing: assertRepeatableOptionsArePositiveIntegers", () => {
     });
   });
   assertThrows(() => {
-    Fig.assertRepeatableOptionsArePositiveIntegers({
+    CLI.assertRepeatableOptionsArePositiveIntegers({
       name: "test",
       options: [
         { name: "one", isRepeatable: Infinity },
@@ -195,7 +195,7 @@ Deno.test("testing: assertRepeatableOptionsArePositiveIntegers", () => {
     });
   });
   assertThrows(() => {
-    Fig.assertRepeatableOptionsArePositiveIntegers({
+    CLI.assertRepeatableOptionsArePositiveIntegers({
       name: "test",
       options: [
         { name: "one", isRepeatable: 2.1 },
@@ -206,8 +206,8 @@ Deno.test("testing: assertRepeatableOptionsArePositiveIntegers", () => {
 
 Deno.test("testing: assertRequiredArgumentsDoNotFollowOptionalArguments", () => {
   // Valid specs
-  Fig.assertRequiredArgumentsDoNotFollowOptionalArguments({ name: "test" });
-  Fig.assertRequiredArgumentsDoNotFollowOptionalArguments({
+  CLI.assertRequiredArgumentsDoNotFollowOptionalArguments({ name: "test" });
+  CLI.assertRequiredArgumentsDoNotFollowOptionalArguments({
     name: "test",
     options: [
       { name: "one" },
@@ -218,35 +218,35 @@ Deno.test("testing: assertRequiredArgumentsDoNotFollowOptionalArguments", () => 
       { name: "four", args: [{ isOptional: true }, { isOptional: true }] },
     ],
   });
-  Fig.assertRequiredArgumentsDoNotFollowOptionalArguments({
+  CLI.assertRequiredArgumentsDoNotFollowOptionalArguments({
     name: "test",
     args: {},
   });
-  Fig.assertRequiredArgumentsDoNotFollowOptionalArguments({
+  CLI.assertRequiredArgumentsDoNotFollowOptionalArguments({
     name: "test",
     args: { isOptional: true },
   });
-  Fig.assertRequiredArgumentsDoNotFollowOptionalArguments({
+  CLI.assertRequiredArgumentsDoNotFollowOptionalArguments({
     name: "test",
     args: [{}, {}],
   });
-  Fig.assertRequiredArgumentsDoNotFollowOptionalArguments({
+  CLI.assertRequiredArgumentsDoNotFollowOptionalArguments({
     name: "test",
     args: [{}, { isOptional: true }],
   });
-  Fig.assertRequiredArgumentsDoNotFollowOptionalArguments({
+  CLI.assertRequiredArgumentsDoNotFollowOptionalArguments({
     name: "test",
     args: [{ isOptional: true }, { isOptional: true }],
   });
   // Invalid specs
   assertThrows(() => {
-    Fig.assertRequiredArgumentsDoNotFollowOptionalArguments({
+    CLI.assertRequiredArgumentsDoNotFollowOptionalArguments({
       name: "test",
       args: [{ isOptional: true }, {}],
     });
   });
   assertThrows(() => {
-    Fig.assertRequiredArgumentsDoNotFollowOptionalArguments({
+    CLI.assertRequiredArgumentsDoNotFollowOptionalArguments({
       name: "test",
       options: [
         { name: "one", args: [{ isOptional: true }, {}] },
@@ -257,8 +257,8 @@ Deno.test("testing: assertRequiredArgumentsDoNotFollowOptionalArguments", () => 
 
 Deno.test("testing: assertLongOptionNamesDoNotStartWithSingleDash", () => {
   // Valid specs
-  Fig.assertLongOptionNamesDoNotStartWithSingleDash({ name: "test" });
-  Fig.assertLongOptionNamesDoNotStartWithSingleDash({
+  CLI.assertLongOptionNamesDoNotStartWithSingleDash({ name: "test" });
+  CLI.assertLongOptionNamesDoNotStartWithSingleDash({
     name: "test",
     options: [
       { name: "one" },
@@ -273,7 +273,7 @@ Deno.test("testing: assertLongOptionNamesDoNotStartWithSingleDash", () => {
       options: [{ name: ["-", "--"] }],
     }],
   });
-  Fig.assertLongOptionNamesDoNotStartWithSingleDash({
+  CLI.assertLongOptionNamesDoNotStartWithSingleDash({
     name: "test",
     parserDirectives: {
       flagsArePosixNoncompliant: true,
@@ -282,7 +282,7 @@ Deno.test("testing: assertLongOptionNamesDoNotStartWithSingleDash", () => {
       { name: "-one" },
     ],
   });
-  Fig.assertLongOptionNamesDoNotStartWithSingleDash({
+  CLI.assertLongOptionNamesDoNotStartWithSingleDash({
     name: "test",
     parserDirectives: {
       flagsArePosixNoncompliant: true,
@@ -296,7 +296,7 @@ Deno.test("testing: assertLongOptionNamesDoNotStartWithSingleDash", () => {
   });
   // Invalid specs
   assertThrows(() => {
-    Fig.assertLongOptionNamesDoNotStartWithSingleDash({
+    CLI.assertLongOptionNamesDoNotStartWithSingleDash({
       name: "test",
       options: [
         { name: "-one" },
@@ -304,7 +304,7 @@ Deno.test("testing: assertLongOptionNamesDoNotStartWithSingleDash", () => {
     });
   });
   assertThrows(() => {
-    Fig.assertLongOptionNamesDoNotStartWithSingleDash({
+    CLI.assertLongOptionNamesDoNotStartWithSingleDash({
       name: "test",
       subcommands: [{
         name: "example",
@@ -315,7 +315,7 @@ Deno.test("testing: assertLongOptionNamesDoNotStartWithSingleDash", () => {
     });
   });
   assertThrows(() => {
-    Fig.assertLongOptionNamesDoNotStartWithSingleDash({
+    CLI.assertLongOptionNamesDoNotStartWithSingleDash({
       name: "test",
       subcommands: [{
         name: "example",
@@ -329,8 +329,8 @@ Deno.test("testing: assertLongOptionNamesDoNotStartWithSingleDash", () => {
 
 Deno.test("testing: assertOptionNamesStartWithDashes", () => {
   // Valid specs
-  Fig.assertOptionNamesStartWithDashes({ name: "test" });
-  Fig.assertOptionNamesStartWithDashes({
+  CLI.assertOptionNamesStartWithDashes({ name: "test" });
+  CLI.assertOptionNamesStartWithDashes({
     name: "test",
     options: [
       { name: "--one" },
@@ -343,7 +343,7 @@ Deno.test("testing: assertOptionNamesStartWithDashes", () => {
       options: [{ name: ["-", "--"] }],
     }],
   });
-  Fig.assertOptionNamesStartWithDashes({
+  CLI.assertOptionNamesStartWithDashes({
     name: "test",
     parserDirectives: {
       flagsArePosixNoncompliant: true,
@@ -358,7 +358,7 @@ Deno.test("testing: assertOptionNamesStartWithDashes", () => {
   });
   // Invalid specs
   assertThrows(() => {
-    Fig.assertOptionNamesStartWithDashes({
+    CLI.assertOptionNamesStartWithDashes({
       name: "test",
       options: [
         { name: "one" },
@@ -367,7 +367,7 @@ Deno.test("testing: assertOptionNamesStartWithDashes", () => {
   });
   // Invalid specs
   assertThrows(() => {
-    Fig.assertOptionNamesStartWithDashes({
+    CLI.assertOptionNamesStartWithDashes({
       name: "test",
       subcommands: [{
         name: "example",
@@ -381,8 +381,8 @@ Deno.test("testing: assertOptionNamesStartWithDashes", () => {
 
 Deno.test("testing: assertNothingIsNamedDashDash", () => {
   // Valid specs
-  Fig.assertNothingIsNamedDashDash({ name: "test" });
-  Fig.assertNothingIsNamedDashDash({
+  CLI.assertNothingIsNamedDashDash({ name: "test" });
+  CLI.assertNothingIsNamedDashDash({
     name: "test",
     options: [{ name: "example" }],
     subcommands: [{
@@ -394,7 +394,7 @@ Deno.test("testing: assertNothingIsNamedDashDash", () => {
   });
   // Invalid specs
   assertThrows(() => {
-    Fig.assertNothingIsNamedDashDash({
+    CLI.assertNothingIsNamedDashDash({
       name: "test",
       options: [
         { name: "--" },
@@ -402,7 +402,7 @@ Deno.test("testing: assertNothingIsNamedDashDash", () => {
     });
   });
   assertThrows(() => {
-    Fig.assertNothingIsNamedDashDash({
+    CLI.assertNothingIsNamedDashDash({
       name: "test",
       subcommands: [
         { name: "--" },
@@ -410,7 +410,7 @@ Deno.test("testing: assertNothingIsNamedDashDash", () => {
     });
   });
   assertThrows(() => {
-    Fig.assertNothingIsNamedDashDash({
+    CLI.assertNothingIsNamedDashDash({
       name: "test",
       parserDirectives: {
         flagsArePosixNoncompliant: true,
@@ -421,7 +421,7 @@ Deno.test("testing: assertNothingIsNamedDashDash", () => {
     });
   });
   assertThrows(() => {
-    Fig.assertNothingIsNamedDashDash({
+    CLI.assertNothingIsNamedDashDash({
       name: "test",
       parserDirectives: {
         flagsArePosixNoncompliant: true,
@@ -435,8 +435,8 @@ Deno.test("testing: assertNothingIsNamedDashDash", () => {
 
 Deno.test("testing: assertOptionArgSeparatorsHaveCharacters", () => {
   // Valid specs
-  Fig.assertOptionArgSeparatorsHaveCharacters({ name: "test" });
-  Fig.assertOptionArgSeparatorsHaveCharacters({
+  CLI.assertOptionArgSeparatorsHaveCharacters({ name: "test" });
+  CLI.assertOptionArgSeparatorsHaveCharacters({
     name: "test",
     parserDirectives: {
       optionArgSeparators: ":",
@@ -455,7 +455,7 @@ Deno.test("testing: assertOptionArgSeparatorsHaveCharacters", () => {
   });
   // Invalid specs
   assertThrows(() => {
-    Fig.assertOptionArgSeparatorsHaveCharacters({
+    CLI.assertOptionArgSeparatorsHaveCharacters({
       name: "test",
       parserDirectives: {
         optionArgSeparators: "",
@@ -463,7 +463,7 @@ Deno.test("testing: assertOptionArgSeparatorsHaveCharacters", () => {
     });
   });
   assertThrows(() => {
-    Fig.assertOptionArgSeparatorsHaveCharacters({
+    CLI.assertOptionArgSeparatorsHaveCharacters({
       name: "test",
       parserDirectives: {
         optionArgSeparators: [":", ""],
@@ -471,7 +471,7 @@ Deno.test("testing: assertOptionArgSeparatorsHaveCharacters", () => {
     });
   });
   assertThrows(() => {
-    Fig.assertOptionArgSeparatorsHaveCharacters({
+    CLI.assertOptionArgSeparatorsHaveCharacters({
       name: "test",
       subcommands: [{
         name: "example",
@@ -482,7 +482,7 @@ Deno.test("testing: assertOptionArgSeparatorsHaveCharacters", () => {
     });
   });
   assertThrows(() => {
-    Fig.assertOptionArgSeparatorsHaveCharacters({
+    CLI.assertOptionArgSeparatorsHaveCharacters({
       name: "test",
       subcommands: [{
         name: "example",
@@ -496,15 +496,15 @@ Deno.test("testing: assertOptionArgSeparatorsHaveCharacters", () => {
 
 Deno.test("testing: assertPlusMinusOptionsTakeOneArg", () => {
   // Valid specs
-  Fig.assertPlusMinusOptionsTakeOneArg({ name: "test" });
-  Fig.assertPlusMinusOptionsTakeOneArg({
+  CLI.assertPlusMinusOptionsTakeOneArg({ name: "test" });
+  CLI.assertPlusMinusOptionsTakeOneArg({
     name: "test",
     options: [
       { name: "+", args: {} },
       { name: "-", args: {} },
     ],
   });
-  Fig.assertPlusMinusOptionsTakeOneArg({
+  CLI.assertPlusMinusOptionsTakeOneArg({
     name: "test",
     parserDirectives: {
       flagsArePosixNoncompliant: true,
@@ -516,7 +516,7 @@ Deno.test("testing: assertPlusMinusOptionsTakeOneArg", () => {
   });
   // Invalid specs
   assertThrows(() => {
-    Fig.assertPlusMinusOptionsTakeOneArg({
+    CLI.assertPlusMinusOptionsTakeOneArg({
       name: "test",
       options: [
         { name: "+" },
@@ -524,7 +524,7 @@ Deno.test("testing: assertPlusMinusOptionsTakeOneArg", () => {
     });
   });
   assertThrows(() => {
-    Fig.assertPlusMinusOptionsTakeOneArg({
+    CLI.assertPlusMinusOptionsTakeOneArg({
       name: "test",
       options: [
         { name: "-" },
@@ -532,7 +532,7 @@ Deno.test("testing: assertPlusMinusOptionsTakeOneArg", () => {
     });
   });
   assertThrows(() => {
-    Fig.assertPlusMinusOptionsTakeOneArg({
+    CLI.assertPlusMinusOptionsTakeOneArg({
       name: "test",
       options: [
         { name: "+", args: [{}, { isOptional: true }] },
@@ -540,7 +540,7 @@ Deno.test("testing: assertPlusMinusOptionsTakeOneArg", () => {
     });
   });
   assertThrows(() => {
-    Fig.assertPlusMinusOptionsTakeOneArg({
+    CLI.assertPlusMinusOptionsTakeOneArg({
       name: "test",
       options: [
         { name: "-", args: [{}, { isOptional: true }] },
@@ -551,8 +551,8 @@ Deno.test("testing: assertPlusMinusOptionsTakeOneArg", () => {
 
 Deno.test("testing: assertNamesHaveNoExtraWhitespace", () => {
   // Valid specs
-  Fig.assertNamesHaveNoExtraWhitespace({ name: "test" });
-  Fig.assertNamesHaveNoExtraWhitespace({
+  CLI.assertNamesHaveNoExtraWhitespace({ name: "test" });
+  CLI.assertNamesHaveNoExtraWhitespace({
     name: "test",
     options: [
       { name: "--option", args: { name: "arg" } },
@@ -573,17 +573,17 @@ Deno.test("testing: assertNamesHaveNoExtraWhitespace", () => {
   });
   // Invalid specs
   assertThrows(() => {
-    Fig.assertNamesHaveNoExtraWhitespace({
+    CLI.assertNamesHaveNoExtraWhitespace({
       name: "test ",
     });
   });
   assertThrows(() => {
-    Fig.assertNamesHaveNoExtraWhitespace({
+    CLI.assertNamesHaveNoExtraWhitespace({
       name: " test",
     });
   });
   assertThrows(() => {
-    Fig.assertNamesHaveNoExtraWhitespace({
+    CLI.assertNamesHaveNoExtraWhitespace({
       name: "test",
       options: [
         { name: "--option " },
@@ -591,7 +591,7 @@ Deno.test("testing: assertNamesHaveNoExtraWhitespace", () => {
     });
   });
   assertThrows(() => {
-    Fig.assertNamesHaveNoExtraWhitespace({
+    CLI.assertNamesHaveNoExtraWhitespace({
       name: "test",
       options: [
         { name: "--option", args: { name: "arg " } },
@@ -599,7 +599,7 @@ Deno.test("testing: assertNamesHaveNoExtraWhitespace", () => {
     });
   });
   assertThrows(() => {
-    Fig.assertNamesHaveNoExtraWhitespace({
+    CLI.assertNamesHaveNoExtraWhitespace({
       name: "test",
       subcommands: [{
         name: "example ",
@@ -607,7 +607,7 @@ Deno.test("testing: assertNamesHaveNoExtraWhitespace", () => {
     });
   });
   assertThrows(() => {
-    Fig.assertNamesHaveNoExtraWhitespace({
+    CLI.assertNamesHaveNoExtraWhitespace({
       name: "test",
       subcommands: [{
         name: "example",
@@ -618,7 +618,7 @@ Deno.test("testing: assertNamesHaveNoExtraWhitespace", () => {
     });
   });
   assertThrows(() => {
-    Fig.assertNamesHaveNoExtraWhitespace({
+    CLI.assertNamesHaveNoExtraWhitespace({
       name: "test",
       options: [
         { name: "--option", args: { name: "arg " } },
@@ -629,8 +629,8 @@ Deno.test("testing: assertNamesHaveNoExtraWhitespace", () => {
 
 Deno.test("testing: assertEverythingHasDescription", () => {
   // Valid specs
-  Fig.assertEverythingHasDescription({ name: "test", description: "test" });
-  Fig.assertEverythingHasDescription({
+  CLI.assertEverythingHasDescription({ name: "test", description: "test" });
+  CLI.assertEverythingHasDescription({
     name: "test",
     description: "test",
     options: [
@@ -648,12 +648,12 @@ Deno.test("testing: assertEverythingHasDescription", () => {
   });
   // Invalid specs
   assertThrows(() => {
-    Fig.assertEverythingHasDescription({
+    CLI.assertEverythingHasDescription({
       name: "test",
     });
   });
   assertThrows(() => {
-    Fig.assertEverythingHasDescription({
+    CLI.assertEverythingHasDescription({
       name: "test",
       description: "test",
       options: [{
@@ -665,8 +665,8 @@ Deno.test("testing: assertEverythingHasDescription", () => {
 
 Deno.test("testing: assertDescriptionLineLengthUnder69", () => {
   // Valid specs
-  Fig.assertDescriptionLineLengthUnder69({ name: "test" });
-  Fig.assertDescriptionLineLengthUnder69({
+  CLI.assertDescriptionLineLengthUnder69({ name: "test" });
+  CLI.assertDescriptionLineLengthUnder69({
     name: "test",
     description: "test",
     options: [
@@ -682,19 +682,19 @@ Deno.test("testing: assertDescriptionLineLengthUnder69", () => {
       },
     ],
   });
-  Fig.assertDescriptionLineLengthUnder69({
+  CLI.assertDescriptionLineLengthUnder69({
     name: "test",
     description: "a".repeat(68),
   });
   // Invalid specs
   assertThrows(() => {
-    Fig.assertDescriptionLineLengthUnder69({
+    CLI.assertDescriptionLineLengthUnder69({
       name: "test",
       description: "a".repeat(69),
     });
   });
   assertThrows(() => {
-    Fig.assertDescriptionLineLengthUnder69({
+    CLI.assertDescriptionLineLengthUnder69({
       name: "test",
       options: [{
         name: "test",
@@ -703,7 +703,7 @@ Deno.test("testing: assertDescriptionLineLengthUnder69", () => {
     });
   });
   assertThrows(() => {
-    Fig.assertDescriptionLineLengthUnder69({
+    CLI.assertDescriptionLineLengthUnder69({
       name: "test",
       subcommands: [{
         name: "test",
@@ -715,8 +715,8 @@ Deno.test("testing: assertDescriptionLineLengthUnder69", () => {
 
 Deno.test("testing: assertRequiresSeparatorTakesOneArg", () => {
   // Valid specs
-  Fig.assertRequiresSeparatorTakesOneArg({ name: "test" });
-  Fig.assertRequiresSeparatorTakesOneArg({
+  CLI.assertRequiresSeparatorTakesOneArg({ name: "test" });
+  CLI.assertRequiresSeparatorTakesOneArg({
     name: "test",
     options: [
       { name: "option" },
@@ -724,7 +724,7 @@ Deno.test("testing: assertRequiresSeparatorTakesOneArg", () => {
       { name: "option", args: [{}, {}] },
     ],
   });
-  Fig.assertRequiresSeparatorTakesOneArg({
+  CLI.assertRequiresSeparatorTakesOneArg({
     name: "test",
     options: [
       { name: "1", requiresSeparator: true, args: {} },
@@ -746,7 +746,7 @@ Deno.test("testing: assertRequiresSeparatorTakesOneArg", () => {
   ];
   for (const option of options) {
     assertThrows(() => {
-      Fig.assertRequiresSeparatorTakesOneArg({
+      CLI.assertRequiresSeparatorTakesOneArg({
         name: "test",
         options: [option],
       });
@@ -756,14 +756,14 @@ Deno.test("testing: assertRequiresSeparatorTakesOneArg", () => {
 
 Deno.test("testing: assertCommonOptionsArePersistent", () => {
   // Valid specs
-  Fig.assertCommonOptionsArePersistent({ name: "test" });
-  Fig.assertCommonOptionsArePersistent({
+  CLI.assertCommonOptionsArePersistent({ name: "test" });
+  CLI.assertCommonOptionsArePersistent({
     name: "test",
     options: [
       { name: "option" },
     ],
   });
-  Fig.assertCommonOptionsArePersistent({
+  CLI.assertCommonOptionsArePersistent({
     name: "test",
     options: [{ name: "a" }],
     subcommands: [{
@@ -771,7 +771,7 @@ Deno.test("testing: assertCommonOptionsArePersistent", () => {
       options: [{ name: "b" }],
     }],
   });
-  Fig.assertCommonOptionsArePersistent({
+  CLI.assertCommonOptionsArePersistent({
     name: "test",
     options: [{ name: "a" }],
     subcommands: [
@@ -784,14 +784,14 @@ Deno.test("testing: assertCommonOptionsArePersistent", () => {
       },
     ],
   });
-  Fig.assertCommonOptionsArePersistent({
+  CLI.assertCommonOptionsArePersistent({
     name: "test",
     options: [{ name: "a", isPersistent: true }],
     subcommands: [{
       name: "subcommand",
     }],
   });
-  Fig.assertCommonOptionsArePersistent({
+  CLI.assertCommonOptionsArePersistent({
     name: "test",
     options: [{ name: "a" }],
     subcommands: [
@@ -806,7 +806,7 @@ Deno.test("testing: assertCommonOptionsArePersistent", () => {
   });
   // Invalid specs
   assertThrows(() => {
-    Fig.assertCommonOptionsArePersistent({
+    CLI.assertCommonOptionsArePersistent({
       name: "test",
       options: [{ name: "a" }],
       subcommands: [
@@ -822,7 +822,7 @@ Deno.test("testing: assertCommonOptionsArePersistent", () => {
     });
   });
   assertThrows(() => {
-    Fig.assertCommonOptionsArePersistent({
+    CLI.assertCommonOptionsArePersistent({
       name: "test",
       options: [{ name: "a" }],
       subcommands: [
@@ -840,22 +840,22 @@ Deno.test("testing: assertCommonOptionsArePersistent", () => {
 
 Deno.test("testing: assertOptionNameReferencesExist", () => {
   // Valid specs
-  Fig.assertOptionNameReferencesExist({ name: "test" });
-  Fig.assertOptionNameReferencesExist({
+  CLI.assertOptionNameReferencesExist({ name: "test" });
+  CLI.assertOptionNameReferencesExist({
     name: "test",
     options: [
       { name: "a" },
       { name: "b" },
     ],
   });
-  Fig.assertOptionNameReferencesExist({
+  CLI.assertOptionNameReferencesExist({
     name: "test",
     options: [
       { name: "a", dependsOn: ["b"] },
       { name: "b", exclusiveOn: ["a"] },
     ],
   });
-  Fig.assertOptionNameReferencesExist({
+  CLI.assertOptionNameReferencesExist({
     name: "test",
     options: [
       { name: "a", isPersistent: true },
@@ -870,7 +870,7 @@ Deno.test("testing: assertOptionNameReferencesExist", () => {
   });
   // Invalid specs
   assertThrows(() => {
-    Fig.assertOptionNameReferencesExist({
+    CLI.assertOptionNameReferencesExist({
       name: "test",
       options: [
         { name: "a", dependsOn: ["b"] },
@@ -878,7 +878,7 @@ Deno.test("testing: assertOptionNameReferencesExist", () => {
     });
   });
   assertThrows(() => {
-    Fig.assertOptionNameReferencesExist({
+    CLI.assertOptionNameReferencesExist({
       name: "test",
       options: [
         { name: "a", exclusiveOn: ["b"] },
@@ -886,7 +886,7 @@ Deno.test("testing: assertOptionNameReferencesExist", () => {
     });
   });
   assertThrows(() => {
-    Fig.assertOptionNameReferencesExist({
+    CLI.assertOptionNameReferencesExist({
       name: "test",
       options: [
         { name: "a" },
@@ -900,7 +900,7 @@ Deno.test("testing: assertOptionNameReferencesExist", () => {
     });
   });
   assertThrows(() => {
-    Fig.assertOptionNameReferencesExist({
+    CLI.assertOptionNameReferencesExist({
       name: "test",
       options: [
         { name: "a" },
@@ -917,8 +917,8 @@ Deno.test("testing: assertOptionNameReferencesExist", () => {
 
 Deno.test("testing: assertPrefixMatchCommandsHaveNoArguments", () => {
   // Valid specs
-  Fig.assertPrefixMatchCommandsHaveNoArguments({ name: "test" });
-  Fig.assertPrefixMatchCommandsHaveNoArguments({
+  CLI.assertPrefixMatchCommandsHaveNoArguments({ name: "test" });
+  CLI.assertPrefixMatchCommandsHaveNoArguments({
     name: "test",
     parserDirectives: {
       subcommandsMatchUniquePrefix: true,
@@ -928,14 +928,14 @@ Deno.test("testing: assertPrefixMatchCommandsHaveNoArguments", () => {
       { name: "another" },
     ],
   });
-  Fig.assertPrefixMatchCommandsHaveNoArguments({
+  CLI.assertPrefixMatchCommandsHaveNoArguments({
     name: "test",
     parserDirectives: {
       subcommandsMatchUniquePrefix: true,
     },
     args: {},
   });
-  Fig.assertPrefixMatchCommandsHaveNoArguments({
+  CLI.assertPrefixMatchCommandsHaveNoArguments({
     name: "test",
     parserDirectives: {
       subcommandsMatchUniquePrefix: true,
@@ -947,7 +947,7 @@ Deno.test("testing: assertPrefixMatchCommandsHaveNoArguments", () => {
   });
   // Invalid specs
   assertThrows(() => {
-    Fig.assertPrefixMatchCommandsHaveNoArguments({
+    CLI.assertPrefixMatchCommandsHaveNoArguments({
       name: "test",
       parserDirectives: {
         subcommandsMatchUniquePrefix: true,
@@ -960,7 +960,7 @@ Deno.test("testing: assertPrefixMatchCommandsHaveNoArguments", () => {
     });
   });
   assertThrows(() => {
-    Fig.assertPrefixMatchCommandsHaveNoArguments({
+    CLI.assertPrefixMatchCommandsHaveNoArguments({
       name: "test",
       parserDirectives: {
         subcommandsMatchUniquePrefix: true,

@@ -6,7 +6,7 @@ import type {
   SingleOrArray,
   Subcommand,
 } from "./types.ts";
-import { makeArray, makeArray1 } from "./util.ts";
+import { makeArray, makeArray1 } from "./collections.ts";
 import { closest } from "./deps/fastest_levenshtein.ts";
 
 function getNamed<T extends { name: SingleOrArray<string> }>(
@@ -22,14 +22,15 @@ function getParserDirective<
   path: readonly Subcommand[],
   key: Key,
 ): NonNullable<Subcommand["parserDirectives"]>[Key] | undefined {
-  return path.findLast((command) =>
-    command.parserDirectives &&
-    key in command.parserDirectives
+  return path.findLast(
+    (command) => command.parserDirectives && key in command.parserDirectives,
   )?.parserDirectives?.[key];
 }
 
 function dedent(str: string) {
-  if (str[0] !== "\n") return str;
+  if (str[0] !== "\n") {
+    return str;
+  }
   const lines = str.split("\n").slice(1, -1);
   const margin = lines[0].length - lines[0].trimStart().length;
   return lines.map((line) => line.slice(margin)).join("\n");
@@ -50,15 +51,15 @@ export interface GetHelpOptions {
 }
 
 /**
- * Get the help message that `Fig.help` and `Fig.helpCommand` would print.
+ * Get the help message that `CLI.help` and `CLI.helpCommand` would print.
  *
  * The intended use of this function is to allow you to print the help message
- * on failure, or to re-implement the `Fig.help`/`Fig.helpCommand` builtins
+ * on failure, or to re-implement the `CLI.help`/`CLI.helpCommand` builtins
  * with slightly different semantics (eg. requiring `--verbose`)
  *
- * @example
+ * ## Example
  * ```ts
- * export const spec: Fig.Spec = {
+ * export const spec: CLI.Spec = {
  *   name: "fig",
  *   options: [
  *     { name: "--verbose" },
@@ -71,7 +72,7 @@ export interface GetHelpOptions {
  * Usage: fig [command]
  *
  * Command Subcommands:
- *  o  doctor      Check Fig is properly configured
+ *  o  doctor      Check CLI is properly configured
  *  o  settings    Customize appearance and behavior
  *  o  issue       Create a new GitHub issue
  * `.trim());
@@ -88,9 +89,11 @@ export function getHelp(
 ): string {
   const { description = true, usage = true, didYouMean } = options;
   const sections = getSections(path);
-  if (didYouMean) {
+  if (didYouMean && didYouMean.choices.length > 0) {
     sections.didYouMean = closest(
       didYouMean.input,
+      // The `closest` function actually takes a `readonly string[]` but it
+      // isn't typed correctly
       didYouMean.choices as string[],
     );
   }
@@ -109,11 +112,10 @@ export function getHelp(
  * This is intended to be used for commands where a subcommand _must_ be
  * provided. Usually this will be the root command, such as `git`.
  *
- * @example
+ * ## Example
  * ```ts
- * export const spec: Fig.Spec = {
+ * export const spec: CLI.Spec = {
  *   name: "git",
- *   action: Fig.usage,
  *   subcommands: [
  *     { name: "commit" },
  *     { name: "switch" },
@@ -133,11 +135,13 @@ export const usage: Action = ({ path, args: [command], error, help }) => {
   }
 
   if (command === "") {
-    error(`Expected a command, but the value was empty\n\n${
-      help({
-        description: false,
-      })
-    }`);
+    error(
+      `Expected a command, but the value was empty\n\n${
+        help({
+          description: false,
+        })
+      }`,
+    );
     return 1;
   }
 
@@ -145,7 +149,9 @@ export const usage: Action = ({ path, args: [command], error, help }) => {
   // that's an error because the user was intending to run a
   // subcommand.
 
-  const subcommands = path.at(-1)?.subcommands?.filter((cmd) => !cmd.hidden)
+  const subcommands = path
+    .at(-1)
+    ?.subcommands?.filter((cmd) => !cmd.hidden)
     .flatMap((cmd) => cmd.name);
 
   if (subcommands && subcommands.length > 0) {
@@ -162,7 +168,9 @@ export const usage: Action = ({ path, args: [command], error, help }) => {
       if (possible.length > 0) {
         error(
           `Ambiguous command '${command}', could be: ${
-            possible.join(", ")
+            possible.join(
+              ", ",
+            )
           }\n\n${
             help({
               description: false,
@@ -173,24 +181,28 @@ export const usage: Action = ({ path, args: [command], error, help }) => {
       }
     }
 
-    error(`Unknown command '${command}'\n\n${
-      help({
-        description: false,
-        didYouMean: {
-          input: command,
-          choices: subcommands,
-        },
-      })
-    }`);
+    error(
+      `Unknown command '${command}'\n\n${
+        help({
+          description: false,
+          didYouMean: {
+            input: command,
+            choices: subcommands,
+          },
+        })
+      }`,
+    );
     return 1;
   }
   // This case is possible when there are subcommands but
   // they're all hidden.
-  error(`Unknown command '${command}'\n\n${
-    help({
-      description: false,
-    })
-  }`);
+  error(
+    `Unknown command '${command}'\n\n${
+      help({
+        description: false,
+      })
+    }`,
+  );
 
   return 1;
 };
@@ -203,14 +215,14 @@ export const usage: Action = ({ path, args: [command], error, help }) => {
  * parent. If the argument isn't provided, a help message for the parent
  * will be printed to stdout.
  *
- * @example
+ * ## Example
  * ```ts
- * const spec: Fig.Spec = {
+ * const spec: CLI.Spec = {
  *   name: "deno",
  *   subcommands: [
  *     { name: "repl" },
  *     { name: "run" },
- *     Fig.helpCommand,
+ *     CLI.helpCommand,
  *   ],
  * };
  * ```
@@ -221,18 +233,19 @@ export const helpCommand: Subcommand = {
   args: {
     name: "command",
     isOptional: true,
-    template: "help",
   },
   action({ path, args: [commandName], error, help }) {
-    // This is guaranteed to have at least one item in it
+    // This is guaranteed to have at least one element in it
     const helpRoot = path.slice(0, -1) as unknown as NonEmptyArray<Subcommand>;
 
     // If there's no subcommand to get help for, get help for the parent
     // of this command.
     if (!commandName) {
-      console.log(help({
-        path: helpRoot,
-      }));
+      console.log(
+        help({
+          path: helpRoot,
+        }),
+      );
       return 0;
     }
 
@@ -240,11 +253,12 @@ export const helpCommand: Subcommand = {
     // 1. There are no subcommands
     // 2. There are no subcommands with that name
 
-    // -1 = `helpCommand`, -2 = parent
+    // Have to check the list of subcommands on the parent command,
+    // which is the second-to-last element in the path. The final element
+    // is the `help` command itself.
     const parent = path[path.length - 2];
 
-    // Nicely asserting that there are subcommands
-    if (!parent.subcommands) {
+    if (!parent.subcommands || parent.subcommands.length === 1) {
       error(
         `No subcommands, try using 'help' with nothing after it\n\n${
           help({
@@ -256,47 +270,51 @@ export const helpCommand: Subcommand = {
       return 1;
     }
 
-    // This is the part that can fail if the user messed up when
-    // typing out the command name.
+    // If the user messed up the name of the subcommand, this is the part that can fail.
     const command = getNamed(parent.subcommands, commandName);
     if (!command) {
       // The error message will be different depending on whether there
       // are visible subcommands or not.
-      const subcommands = parent
-        .subcommands
+      const subcommands = parent.subcommands
         .filter((cmd) => !cmd.hidden)
         .flatMap((cmd) => cmd.name);
 
       // If there are visible subcommands, suggesting the closest one
       // gives the user a clear indication of how the issue can be resolved.
       if (subcommands.length > 0) {
-        error(`There is no subcommand named '${commandName}'\n\n${
-          help({
-            path: helpRoot,
-            didYouMean: {
-              input: commandName,
-              choices: subcommands,
-            },
-          })
-        }`);
+        error(
+          `There is no subcommand named '${commandName}'\n\n${
+            help({
+              path: helpRoot,
+              didYouMean: {
+                input: commandName,
+                choices: subcommands,
+              },
+            })
+          }`,
+        );
         return 1;
       } else {
-        error(`There is no subcommand named '${commandName}'\n\n${
-          help({
-            description: false,
-            path: helpRoot,
-          })
-        }`);
+        error(
+          `There is no subcommand named '${commandName}'\n\n${
+            help({
+              description: false,
+              path: helpRoot,
+            })
+          }`,
+        );
         return 1;
       }
     }
 
     // Everything went smoothly, the lookup succeeded. To build the
     // correct path, take every command until *before* this help command
-    // (which is guaranteed to be at -1), then concat with
-    console.log(help({
-      path: [...helpRoot, command],
-    }));
+    // (which is guaranteed to be at -1), then concat with the subcommand.
+    console.log(
+      help({
+        path: [...helpRoot, command],
+      }),
+    );
   },
 };
 
@@ -305,12 +323,12 @@ export const helpCommand: Subcommand = {
  *
  * This only needs to be added to the root command (spec) object.
  *
- * @example
+ * ## Example
  * ```ts
- * const spec: Fig.Spec = {
+ * const spec: CLI.Spec = {
  *   name: "fish",
  *   options: [
- *     Fig.help,
+ *     CLI.help,
  *     { name: ["-c", "--command"], args: {} },
  *     { name: ["-C", "--init-command"], args: {} },
  *     { name: ["-i", "--interactive"] },
@@ -323,7 +341,8 @@ export const help: Option = {
   name: ["-h", "--help"],
   description: "Print a help message",
   isPersistent: true,
-  action({ path }) {
+  action({ path, help }) {
+    console.log(help({ path }));
     const sections = getSections(path);
     const text = formatHelpSections(sections);
     console.log(text);
@@ -340,9 +359,7 @@ type HelpSections = {
   subcommands: [formattedName: string, description: string][];
 };
 
-function getSubcommandPathString(
-  commands: NonEmptyArray<Subcommand>,
-): string {
+function getSubcommandPathString(commands: NonEmptyArray<Subcommand>): string {
   return commands
     .map((command) => getLongestString(makeArray1(command.name)))
     .join(" ");
@@ -352,9 +369,7 @@ function nonNullable<T>(value: T): value is NonNullable<T> {
   return value !== null && value !== undefined;
 }
 
-function getSections(
-  commands: NonEmptyArray<Subcommand>,
-): HelpSections {
+function getSections(commands: NonEmptyArray<Subcommand>): HelpSections {
   const command = commands[commands.length - 1];
 
   const description = command.description;
@@ -364,9 +379,9 @@ function getSections(
     ? command.subcommands
       .filter((subcommand) => !subcommand.hidden)
       .map((subcommand) => [
-        makeArray1(subcommand.name).sort((a, b) => a.length - b.length).join(
-          ", ",
-        ),
+        makeArray1(subcommand.name)
+          .sort((a, b) => a.length - b.length)
+          .join(", "),
         subcommand.description ?? defaultDesc,
       ])
     : [];
@@ -381,14 +396,12 @@ function getSections(
   // no subcommands, so all options should go in the options section.
   if (commands.length === 1 && subcommands.length === 0) {
     optionObjects = command.options
-      ? command.options
-        .filter((option) => !option.hidden)
+      ? command.options.filter((option) => !option.hidden)
       : [];
-    options = optionObjects
-      .map((option) => [
-        optionToString(option),
-        option.description ?? defaultDesc,
-      ]);
+    options = optionObjects.map((option) => [
+      optionToString(option),
+      option.description ?? defaultDesc,
+    ]);
   } else {
     persistentOptionObjects = commands
       .map((command) => command.options)
@@ -396,27 +409,24 @@ function getSections(
       .flat()
       .filter((option) => option.isPersistent && !option.hidden);
 
-    persistentOptions = persistentOptionObjects
-      .map((option) => [
-        optionToString(option),
-        option.description ?? defaultDesc,
-      ]);
+    persistentOptions = persistentOptionObjects.map((option) => [
+      optionToString(option),
+      option.description ?? defaultDesc,
+    ]);
 
-    optionObjects = (command.options ?? [])
-      .filter((option) => !option.hidden && !option.isPersistent);
+    optionObjects = (command.options ?? []).filter(
+      (option) => !option.hidden && !option.isPersistent,
+    );
 
-    options = optionObjects
-      .map((option) => [
-        optionToString(option),
-        option.description ?? defaultDesc,
-      ]);
+    options = optionObjects.map((option) => [
+      optionToString(option),
+      option.description ?? defaultDesc,
+    ]);
   }
 
   const usage = (() => {
     const parts = [];
-    parts.push(
-      getSubcommandPathString(commands),
-    );
+    parts.push(getSubcommandPathString(commands));
     const required = [
       ...optionObjects.filter((option) => option.isRequired),
       ...persistentOptionObjects.filter((option) => option.isRequired),
@@ -449,9 +459,7 @@ function getSections(
   };
 }
 
-export function formatHelpSections(
-  sections: HelpSections,
-): string {
+export function formatHelpSections(sections: HelpSections): string {
   const parts = [];
 
   const indent = "  ";
@@ -483,10 +491,9 @@ export function formatHelpSections(
         longestOptionName - name.length + minSpacingBetweenNameAndDesc,
       );
       const [head, ...tail] = desc.split("\n");
-      const description = [
-        head,
-        ...tail.map((line) => newline + line),
-      ].join("\n");
+      const description = [head, ...tail.map((line) => newline + line)].join(
+        "\n",
+      );
       lines.push(`${indent}${name}${spaces}${description}`);
     }
     return lines;
@@ -504,20 +511,16 @@ export function formatHelpSections(
         longestName - name.length + minSpacingBetweenNameAndDesc,
       );
       const [head, ...tail] = desc.split("\n\n")[0].split("\n");
-      const description = [
-        head,
-        ...tail.map((line) => newline + line),
-      ].join("\n");
+      const description = [head, ...tail.map((line) => newline + line)].join(
+        "\n",
+      );
       lines.push(`${indent}${name}${spaces}${description}`);
     }
     parts.push(lines.join("\n"));
   }
 
   if (sections.options.length > 0) {
-    const lines = [
-      "Flags:",
-      ...formatOptions(sections.options),
-    ];
+    const lines = ["Flags:", ...formatOptions(sections.options)];
     parts.push(lines.join("\n"));
   }
 

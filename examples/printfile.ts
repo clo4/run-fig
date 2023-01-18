@@ -1,21 +1,20 @@
-import Fig from "../mod.ts";
+import CLI from "../mod.ts";
 
-export const spec: Fig.Spec = {
+CLI.run({
   name: "printfile",
   description: "Print the contents of a file",
 
   args: {
     name: "path",
-    template: "filepaths",
   },
 
   options: [
     { name: "--stderr", description: "Print on stderr instead of stdout" },
-    Fig.help, // opt-in `--help` option
+    CLI.help, // opt-in `--help` option
   ],
 
   subcommands: [
-    Fig.helpCommand, // Add `help` command
+    CLI.helpCommand, // Add `help` command
   ],
 
   async action({ args: [path], options }) {
@@ -27,6 +26,4 @@ export const spec: Fig.Spec = {
     }
     return 0;
   },
-};
-
-Fig.run(spec);
+});

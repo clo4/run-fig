@@ -1,4 +1,4 @@
-import Fig from "../mod.ts";
+import CLI from "../mod.ts";
 
 const getTasks = (): string[] =>
   JSON.parse(localStorage.getItem("tasks") || "[]") as string[];
@@ -6,11 +6,11 @@ const getTasks = (): string[] =>
 const setTasks = (tasks: string[]) =>
   localStorage.setItem("tasks", JSON.stringify(tasks));
 
-const spec: Fig.Spec = {
+const spec: CLI.Spec = {
   name: "task",
   description: "An extremely simple to-do list CLI",
   options: [
-    Fig.help,
+    CLI.help,
   ],
   requiresSubcommand: true,
   parserDirectives: {
@@ -84,4 +84,4 @@ const spec: Fig.Spec = {
   ],
 };
 
-Fig.run(spec);
+CLI.run(spec);

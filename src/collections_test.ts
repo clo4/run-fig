@@ -1,5 +1,5 @@
 import { assertEquals } from "./deps/std_testing_asserts.ts";
-import { makeArray, makeArray1 } from "./util.ts";
+import { makeArray, makeArray1 } from "./collections.ts";
 
 Deno.test({
   name: "makeArray transforms input to arrays",

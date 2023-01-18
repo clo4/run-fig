@@ -7,7 +7,7 @@ import type {
   Subcommand,
 } from "./types.ts";
 import { analyze, BaseToken, TokenOption, TokenSubcommand } from "./analyze.ts";
-import { assert, isArray, makeArray, setEach } from "./util.ts";
+import { isArray, makeArray, setEach } from "./collections.ts";
 import {
   ErrorContext,
   InvalidOptionArg,
@@ -19,6 +19,12 @@ import {
   UnknownOption,
 } from "./errors.ts";
 import { usage as builtinUsageAction } from "./help.ts";
+
+export function assert(expr: unknown, msg = ""): asserts expr {
+  if (!expr) {
+    throw new Error(msg);
+  }
+}
 
 export interface ParseResult {
   args: string[];
@@ -35,10 +41,8 @@ const enum State {
   ParseOptionArgRequireSeparator,
 }
 
-/** Returns the minimum number of arguments that satisfies the args array */
-export function getMinArgs(
-  args: readonly ({ isOptional?: boolean })[],
-): number {
+/** Get the minimum number of values that can satisfy the args array */
+export function getMinArgs(args: readonly { isOptional?: boolean }[]): number {
   let count = 0;
   for (let i = 0; i < args.length; i++) {
     if (args[i].isOptional) {
@@ -49,10 +53,8 @@ export function getMinArgs(
   return count;
 }
 
-/** Returns the maximum number of arguments that satisfies the args array */
-export function getMaxArgs(
-  args: readonly ({ isVariadic?: boolean })[],
-): number {
+/** Get the maximum number of values that can satisfy the args array */
+export function getMaxArgs(args: readonly { isVariadic?: boolean }[]): number {
   // Loop over the array backwards because variadic arguments are
   // more likely to be at the end of the array. They don't _need_
   // to be, but it's more idiomatic.
@@ -93,10 +95,7 @@ function get<K, V>(map: Map<K, V>, key: K | NonEmptyArray<K>): V | undefined {
  *
  * This function is exposed to make it easier to build a custom runner.
  */
-export function parse(
-  input: readonly string[],
-  spec: Spec,
-): ParseResult {
+export function parse(input: readonly string[], spec: Spec): ParseResult {
   const path: [Spec, ...Subcommand[]] = [spec];
   const actions: Action[] = [];
   const optionActions: Action[] = [];
@@ -137,10 +136,7 @@ export function parse(
     const option = token.option;
 
     // Don't allow repeating non-repeatable options
-    if (
-      !option.isRepeatable &&
-      has(foundOptions, option.name)
-    ) {
+    if (!option.isRepeatable && has(foundOptions, option.name)) {
       throw new ParseError(ctx(), "Repeated option");
     }
 

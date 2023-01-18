@@ -16,12 +16,12 @@
  * @module
  */
 
-import * as Fig from "./src/mod.ts";
+import * as CLI from "./src/mod.ts";
 
 // Default namespaced export, because this module exports a *lot* of stuff
 // and it's better to have a canonical import name and reduce the space taken
 // up by importing this module.
-export default Fig;
+export default CLI;
 
 // You can also import items individually, like the types. Also required for
 // the documentation generator, which doesn't support exported namespaces.

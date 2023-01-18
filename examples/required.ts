@@ -1,6 +1,6 @@
-import Fig from "../mod.ts";
+import CLI from "../mod.ts";
 
-const spec: Fig.Spec = {
+const spec: CLI.Spec = {
   name: "deno",
   subcommands: [
     {
@@ -15,4 +15,4 @@ const spec: Fig.Spec = {
   ],
 };
 
-Fig.run(spec);
+CLI.run(spec);

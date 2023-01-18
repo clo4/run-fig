@@ -1,4 +1,4 @@
-import { makeArray, setEach } from "./util.ts";
+import { makeArray, setEach } from "./collections.ts";
 
 interface MinOption {
   name: string | readonly string[];
@@ -19,8 +19,6 @@ interface MinSubcommand<Option extends MinOption> {
     subcommandsMatchUniquePrefix?: boolean;
   };
 }
-
-// Token helpers {{{
 
 export type BaseToken = {
   /** The index in the input that that contains this token */
@@ -172,8 +170,6 @@ export const $option = <Option extends MinOption>(
   };
 };
 
-// }}}
-
 export interface AnalyzeResult<Subcommand, Option> {
   /** The state after the final token has been processed */
   finalState: {
@@ -237,6 +233,7 @@ export function analyze<
   // This is initialized by the call to `updateCurrentCommand`
   let localSubcommands: readonly Subcommand[] | undefined;
 
+  // TODO: Check if this would be faster as an array for a Deno-sized spec
   const localOptions: Map<string, Option> = new Map();
   const persistentOptions: Map<string, Option> = new Map();
   const localRequiredOptions: Map<string, Option> = new Map();
@@ -261,11 +258,13 @@ export function analyze<
 
     if (!subcommandsMatchUniquePrefix) {
       // Only find exact matches.
-      return localSubcommands.find((command) =>
-        typeof command.name === "string"
-          ? command.name === name
-          : command.name.includes(name)
-      ) ?? null;
+      return (
+        localSubcommands.find((command) =>
+          typeof command.name === "string"
+            ? command.name === name
+            : command.name.includes(name)
+        ) ?? null
+      );
     } else {
       // Prefer exact matches, but also find commands with a matching prefix.
       const matchingPrefixCommands = [];
@@ -334,9 +333,7 @@ export function analyze<
     const directives = command.parserDirectives;
 
     if (directives?.optionArgSeparators) {
-      separators = makeArray(
-        directives.optionArgSeparators,
-      );
+      separators = makeArray(directives.optionArgSeparators);
     }
 
     if (directives?.subcommandsMatchUniquePrefix) {
@@ -380,15 +377,7 @@ export function analyze<
       if (command) {
         localOptions.clear();
         updateCurrentCommand(command);
-        tokens.push(
-          $subcommand(
-            index,
-            0,
-            token.length,
-            token,
-            command,
-          ),
-        );
+        tokens.push($subcommand(index, 0, token.length, token, command));
         continue tokens;
       }
     }
@@ -410,21 +399,10 @@ export function analyze<
         // - the first non-leading character isn't an option
         const dashOption = getOption(leadingChar);
         if (dashOption?.args && !hasOption(token.slice(0, 2))) {
-          tokens.push($option(
-            index,
-            0,
-            1,
-            leadingChar,
-            dashOption,
-          ));
-          tokens.push($optionArg(
-            index,
-            1,
-            token.length,
-            token.slice(1),
-            leadingChar,
-            "",
-          ));
+          tokens.push($option(index, 0, 1, leadingChar, dashOption));
+          tokens.push(
+            $optionArg(index, 1, token.length, token.slice(1), leadingChar, ""),
+          );
           continue tokens;
         }
 
@@ -456,14 +434,16 @@ export function analyze<
               remainingChars.startsWith(sep)
             ) || "";
             const argStartOffset = char + sep.length;
-            tokens.push($optionArg(
-              index,
-              argStartOffset + 1,
-              token.length,
-              token.slice(argStartOffset + 1),
-              optionName,
-              sep,
-            ));
+            tokens.push(
+              $optionArg(
+                index,
+                argStartOffset + 1,
+                token.length,
+                token.slice(argStartOffset + 1),
+                optionName,
+                sep,
+              ),
+            );
             break;
           }
         }
@@ -500,44 +480,46 @@ export function analyze<
             if (!hasUsedNonPersistentOption && !option.isPersistent) {
               hasUsedNonPersistentOption = true;
             }
-            tokens.push($option(
-              index,
-              0,
-              foundSepIndex,
-              token.slice(0, foundSepIndex),
-              option,
-            ));
-            tokens.push($optionArg(
-              index,
-              foundSepIndex + foundSep.length,
-              token.length,
-              token.slice(foundSepIndex + foundSep.length),
-              optionName,
-              foundSep,
-            ));
+            tokens.push(
+              $option(
+                index,
+                0,
+                foundSepIndex,
+                token.slice(0, foundSepIndex),
+                option,
+              ),
+            );
+            tokens.push(
+              $optionArg(
+                index,
+                foundSepIndex + foundSep.length,
+                token.length,
+                token.slice(foundSepIndex + foundSep.length),
+                optionName,
+                foundSep,
+              ),
+            );
             continue tokens;
           } else if (posixCompliantOptions) {
             // If we're here, we know the option is invalid and we're parsing a
             // posix-compliant option, so that's an "unknown option" instead of arg.
             const optionName = token.slice(0, foundSepIndex);
-            tokens.push($unknownOption(
-              index,
-              0,
-              foundSepIndex,
-              optionName,
-              [
+            tokens.push(
+              $unknownOption(index, 0, foundSepIndex, optionName, [
                 ...localOptions.keys(),
                 ...persistentOptions.keys(),
-              ],
-            ));
-            tokens.push($optionArg(
-              index,
-              foundSepIndex + foundSep.length,
-              token.length,
-              token.slice(foundSepIndex + foundSep.length),
-              optionName,
-              foundSep,
-            ));
+              ]),
+            );
+            tokens.push(
+              $optionArg(
+                index,
+                foundSepIndex + foundSep.length,
+                token.length,
+                token.slice(foundSepIndex + foundSep.length),
+                optionName,
+                foundSep,
+              ),
+            );
             continue tokens;
           }
           // Posix noncompliant options should fall through
@@ -552,13 +534,12 @@ export function analyze<
           } else if (posixCompliantOptions) {
             // If we're here, we know the option is invalid and we're parsing a
             // posix-compliant option, so that's an "unknown option" instead of arg.
-            tokens.push($unknownOption(
-              index,
-              0,
-              token.length,
-              token,
-              [...localOptions.keys(), ...persistentOptions.keys()],
-            ));
+            tokens.push(
+              $unknownOption(index, 0, token.length, token, [
+                ...localOptions.keys(),
+                ...persistentOptions.keys(),
+              ]),
+            );
             continue tokens;
           }
         }

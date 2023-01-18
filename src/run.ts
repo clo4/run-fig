@@ -2,7 +2,10 @@ import type { ActionInit, Spec } from "./types.ts";
 import { parse, ParseResult } from "./parse.ts";
 import { getHelp } from "./help.ts";
 import { ParseError, UnknownOption } from "./errors.ts";
-import { error as printError } from "./util.ts";
+
+export function printError(...strings: unknown[]): void {
+  console.error("%cError:", "color: red", ...strings);
+}
 
 /**
  * Parses the input and executes the relevant action
@@ -26,10 +29,10 @@ import { error as printError } from "./util.ts";
  * systems. The name is intentionally long to dissuade you from using
  * it instead of `run` by accident.
  *
- * @example
+ * ## Example
  * ```typescript
- * const spec: Fig.Spec = { name: "example" };
- * const code = await Fig.execute(spec, Deno.args);
+ * const spec: CLI.Spec = { name: "example" };
+ * const code = await CLI.execute(spec, Deno.args);
  * console.log("Finished");
  * Deno.exit(code);
  * ```
@@ -50,13 +53,13 @@ export async function execute(
           choices: error.validOptions,
         },
       });
-      printError(
-        `${error.message}\n\n${helpMessage}`,
-      );
+      printError(`${error.message}\n\n${helpMessage}`);
     } else if (error instanceof ParseError) {
       printError(
         `${error.message}\n\n${
-          getHelp(error.context.path, { description: false })
+          getHelp(error.context.path, {
+            description: false,
+          })
         }`,
       );
     } else {
@@ -81,8 +84,13 @@ export async function execute(
     options: {
       options,
       has: (name) => options.has(name),
-      get: (name) => options.get(name)?.[0],
-      all: (name) => options.get(name),
+      get: (name) => {
+        const found = options.get(name);
+        if (found === undefined) {
+          return [false];
+        }
+        return [true, ...found];
+      },
       count: (name) => options.get(name)?.length ?? 0,
     },
   };
@@ -95,7 +103,7 @@ export async function execute(
     // This means it's trivial to skip an await by checking this.
     const actionResult = action(actionInit);
     if (typeof actionResult === "object") {
-      exitCode = await actionResult ?? 0;
+      exitCode = (await actionResult) ?? 0;
     } else {
       exitCode = actionResult ?? 0;
     }
@@ -114,16 +122,16 @@ export async function execute(
 /**
  * Runs the CLI
  *
- * @example
+ * ## Example
  * ```ts
- * const spec: Fig.Spec = { name: "example" };
- * Fig.run(spec);
+ * const spec: CLI.Spec = { name: "example" };
+ * CLI.run(spec);
  * ```
  *
- * @example using a custom argument array
+ * ## Example using a custom argument array
  * ```ts
- * const spec: Fig.Spec = { name: "example", args: {} };
- * Fig.run(spec, { args: ["first argument"] });
+ * const spec: CLI.Spec = { name: "example", args: {} };
+ * CLI.run(spec, { args: ["first argument"] });
  * ```
  */
 export async function run(
@@ -132,5 +140,17 @@ export async function run(
 ): Promise<never> {
   const { args = Deno.args } = options;
   const code = await execute(spec, args);
-  Deno.exit(code);
+  exit(code);
+}
+
+function exit(status: number): never {
+  // deno-lint-ignore no-explicit-any
+  const gt = globalThis as any;
+  if (typeof gt.process === "object") {
+    gt.process.exit(status);
+  }
+  if (typeof gt.Deno === "object") {
+    gt.Deno.exit(status);
+  }
+  throw new Error("Cannot exit");
 }

@@ -1,5 +1,5 @@
 /**
- * Defines the Fig schema. This is a subset of valid autocomplete specs.
+ * Defines the CLI schema. This is a subset of valid autocomplete specs.
  *
  * Autocomplete specs are located here: https://github.com/withfig/autocomplete
  *
@@ -7,7 +7,7 @@
  * generators. Some specs, such as rustup, require no changes at all.
  *
  * Typically, this uses stricter types instead of lint rules. Where the type
- * system can't enforce something, tests do (`Fig.test`).
+ * system can't enforce something, tests do (`CLI.test`).
  *
  * @module
  */
@@ -35,9 +35,9 @@ export type SingleOrArrayOrEmpty<T> = T | [] | readonly [T, T, ...T[]];
  * dispatch to a function defined elsewhere. This allows you to separate
  * concerns -- keep the CLI in one place, and the logic elsewhere.
  *
- * @example
+ * ## Example
  * ```ts
- * export const spec: Fig.Spec = {
+ * export const spec: CLI.Spec = {
  *   name: "rm",
  *   args: { name: "path", isVariadic: true },
  *   options: [
@@ -83,11 +83,8 @@ export interface OptionArgs {
   /** Escape hatch: the actual map of option names to values */
   readonly options: Map<string, string[]>;
 
-  /** Get all of the options arguments */
-  all(name: string): string[] | undefined;
-
-  /** Get the option's first argument */
-  get(name: string): string | undefined;
+  /** Get the option's arguments, with a guard variable as the first value */
+  get(name: string): [true, ...string[]] | [false];
 
   /** Check if the option was provided */
   has(name: string): boolean;
@@ -115,9 +112,9 @@ export interface ActionInit {
    * argument definitions is done in the action. It's easiest to do this with
    * array destructuring.
    *
-   * @example Destructuring with a variadic argument last
+   * ## Example Destructuring with a variadic argument last
    * ```ts
-   * const spec: Fig.Spec = {
+   * const spec: CLI.Spec = {
    *   name: "find-text",
    *   args: [
    *     { name: "text" },
@@ -129,9 +126,9 @@ export interface ActionInit {
    * }
    * ```
    *
-   * @example Using a variadic argument first
+   * ## Example Using a variadic argument first
    * ```ts
-   * const spec: Fig.Spec = {
+   * const spec: CLI.Spec = {
    *   name: "mv",
    *   args: [
    *     { name: "source", isVariadic: true },
@@ -152,7 +149,7 @@ export interface ActionInit {
    * Array of commands used leading up to the action invocation
    *
    * There's always at least one item in the array. The first (0th)
-   * item is always the root command, the `Fig.Spec`.
+   * item is always the root command, the `CLI.Spec`.
    *
    * This is useful to perform introspection.
    */
@@ -163,9 +160,9 @@ export interface ActionInit {
    * provided. This is useful to manually reconcile the arguments to
    * multiple variadic arguments.
    *
-   * @example Using two variadic arguments
+   * ## Example Using two variadic arguments
    * ```ts
-   * const spec: Fig.Spec = {
+   * const spec: CLI.Spec = {
    *   name: "example",
    *   args: [
    *     { name: "one", isVariadic: true },
@@ -199,9 +196,9 @@ export interface ActionInit {
    * This is useful for customizing the help message, or showing how the app
    * should be used when it is used incorrectly.
    *
-   * @example
+   * ## Example
    * ```
-   * const spec: Fig.Spec = {
+   * const spec: CLI.Spec = {
    *   name: "example",
    *   requiresSubcommand: true,
    *   action({ help }) {
@@ -221,15 +218,21 @@ export interface ActionInit {
     /** Include the usage summary? (default: true) */
     usage?: boolean;
 
-    /** Find the closest string from `choices` and ask the user if they meant that */
+    /**
+     * Ask the user if they meant a different command.
+     */
     didYouMean?: {
-      /** The incorrect input */
+      /** The incorrect input that the user provided */
       input: string;
       /** The correct choices that could be used instead */
       choices: readonly string[];
     };
 
-    /** Alternative path to get help for */
+    /**
+     * Provide a custom path to get help for.
+     *
+     * By default, if path isn't provided, the current path is used.
+     */
     path?: NonEmptyArray<Subcommand>;
   }): string;
 }
@@ -244,9 +247,9 @@ export interface ActionInit {
  * an action, it inherits the action from its parent. If no actions are defined,
  * running the CLI will return a status code of 1.
  *
- * @example
+ * ## Example
  * ```ts
- * export const spec: Fig.Spec = {
+ * export const spec: CLI.Spec = {
  *   name: "rm",
  *   args: { name: "path", isVariadic: true },
  *   options: [
@@ -269,6 +272,48 @@ export interface Spec extends Omit<Subcommand, "name"> {
 }
 
 /**
+ * Parser directives for subcommands. These are options defined on the subcommand
+ * that control how the parser works, without having to touch the parser itself.
+ */
+export interface SubcommandParserDirectives {
+  /**
+   * Makes all option names literal, disables option chaining, and disables
+   * unknown options.
+   *
+   * If it's false, option names can only start with `-`, `+`, or `--`. When
+   * it's true, option names are treated literally, which means you can use
+   * names such as `abc` instead of `--abc`.
+   *
+   * This is inherited for all subcommands unless a child subcommand sets it
+   * to false.
+   */
+  flagsArePosixNoncompliant?: boolean;
+
+  /**
+   * Disallow mixing options and arguments
+   *
+   * Once an argument has been provided, all following tokens will be
+   * treated as arguments, regardless of whether they are valid options.
+   */
+  optionsMustPrecedeArguments?: boolean;
+
+  /**
+   * The separators that can be used for an option argument
+   *
+   * To disable option arg separators, set this value to an empty array.
+   *
+   * This is inherited for all subcommands unless overridden.
+   */
+  optionArgSeparators?: SingleOrArrayOrEmpty<string>;
+
+  /**
+   * Match subcommand names on the shortest unique segment instead of
+   * requiring exact matches
+   */
+  subcommandsMatchUniquePrefix?: boolean;
+}
+
+/**
  * A subcommand is something that can be executed
  *
  * Think of it like an API endpoint. You've used subcommands before, such
@@ -282,9 +327,9 @@ export interface Spec extends Omit<Subcommand, "name"> {
  * options preceding it. In the example below, you can use `--unstable` before
  * `run`, and still invoke the command.
  *
- * @example modelling the `deno run` command
+ * ## Example modelling the `deno run` command
  * ```ts
- * export const spec: Fig.Spec = {
+ * export const spec: CLI.Spec = {
  *   name: "deno",
  *   options: [
  *     { name: "--unstable", isPersistent: true },
@@ -339,9 +384,9 @@ export interface Subcommand {
    *
    * The description is literal. It won't be dedented.
    *
-   * @example
+   * ## Example
    * ```ts
-   * const spec: Fig.Spec = {
+   * const spec: CLI.Spec = {
    *   name: "deno",
    *   description: `
    * A modern JavaScript and TypeScript runtime
@@ -383,7 +428,7 @@ export interface Subcommand {
    * using the `options` property.
    *
    * ```ts
-   * const spec: Fig.Spec = {
+   * const spec: CLI.Spec = {
    *   name: "deno",
    *   subcommands: [{
    *     name: "run",
@@ -425,49 +470,10 @@ export interface Subcommand {
   subcommands?: NonEmptyArray<Subcommand>;
 
   /** Directly control parser behavior, such as "what counts as an option" */
-  parserDirectives?: {
-    /**
-     * Makes all option names literal, disables option chaining, and disables
-     * unknown options.
-     *
-     * If it's false, option names can only start with `-`, `+`, or `--`. When
-     * it's true, option names are treated literally, which means you can use
-     * names such as `abc` instead of `--abc`.
-     *
-     * This is inherited for all subcommands unless a child subcommand sets it
-     * to false.
-     */
-    flagsArePosixNoncompliant?: boolean;
-
-    /**
-     * Disallow mixing options and arguments
-     *
-     * Once an argument has been provided, all following tokens will be
-     * treated as arguments, regardless of whether they are valid options.
-     */
-    optionsMustPrecedeArguments?: boolean;
-
-    /**
-     * The separators that can be used for an option argument
-     *
-     * To disable option arg separators, set this value to an empty array.
-     *
-     * This is inherited for all subcommands unless overridden.
-     */
-    optionArgSeparators?: SingleOrArrayOrEmpty<string>;
-
-    /**
-     * Match subcommand names on the shortest unique segment instead of
-     * requiring exact matches
-     */
-    subcommandsMatchUniquePrefix?: boolean;
-  };
+  parserDirectives?: SubcommandParserDirectives;
 
   /** Hide this command from any place it may be displayed */
   hidden?: true;
-
-  /** Use a specific kind of matching for suggestions on this subcommand */
-  filterStrategy?: "fuzzy" | "prefix" | "default";
 
   /**
    * If there is no action on this command, print usage information instead
@@ -497,9 +503,9 @@ export interface Subcommand {
    *
    * Note that actions are optional if using `requiresSubcommand`.
    *
-   * @example
+   * ## Example
    * ```ts
-   * const spec: Fig.Spec = {
+   * const spec: CLI.Spec = {
    *   name: "sprint",
    *   description: "Execute a command",
    *   args: [
@@ -562,9 +568,9 @@ export interface Subcommand {
  * These actions should not be used for slight changes in behavior, but instead for
  * entirely different things, such as `--help` and `--version`.
  *
- * @example
+ * ## Example
  * ```ts
- * const spec: Fig.Spec = {
+ * const spec: CLI.Spec = {
  *   name: "sort",
  *   options: [
  *     { name: "-s", description: "Stable sort" },
@@ -577,7 +583,7 @@ export interface Subcommand {
  *     {
  *       name: "--version",
  *       action() {
- *         console.log("0.1.0 Fig");
+ *         console.log("0.1.0 CLI");
  *       },
  *     },
  *     // ...
@@ -642,10 +648,10 @@ export interface Option {
    * A repeatable option will have multiple empty strings in the array to count
    * the number of repetitions.
    *
-   * @example
+   * ## Example
    * ```ts
    * // example -vvv
-   * const spec: Fig.Spec = {
+   * const spec: CLI.Spec = {
    *   name: "example",
    *   options: [{
    *     name: "-v",
@@ -664,14 +670,17 @@ export interface Option {
   /**
    * Fail if the option isn't provided
    *
-   * "Required option" is an oxymoron, it isn't obvious that an option would be
-   * mandatory. It means that a user will run the command, it will fail,
-   * they'll run `--help` to understand what the required option is for, then
+   * ## Don't use this if you can avoid it
+   *
+   * "Required option" is an oxymoron, it isn't obvious that an *option* would be
+   * mandatory. It means that the user will run the command, see it fail,
+   * run `--help` to understand what the required option is for, *then*
    * finally run the command correctly.
    *
    * There are some cases where a required option makes sense:
    * - Forcing confirmation of an action, such as `typescript-language-server --stdio`
    *   which makes sure you don't end up in a confusing state by default.
+   *   - Note that this would still be better suited to a subcommand.
    * - Knowing that the default behavior, ie. _without_ the option, isn't
    *   implemented yet but will be in the future.
    */
@@ -682,13 +691,13 @@ export interface Option {
    *
    * You only need to use one name of the option.
    *
-   * @example
+   * ## Example
    * ```ts
    * // Succeeds: example -a
    * // Succeeds: example -x
    * // Fails:    example -ax
    * // Fails:    example -xa
-   * const spec: Fig.Spec = {
+   * const spec: CLI.Spec = {
    *   name: "example",
    *   options: [
    *     { name: ["-a", "--abc"] },
@@ -705,13 +714,13 @@ export interface Option {
    * You only need to use one name of the option. The options can be
    * provided in any order.
    *
-   * @example
+   * ## Example
    * ```ts
    * // Succeeds: example -a
    * // Succeeds: example -ax
    * // Succeeds: example -xa
    * // Fails:    example -x
-   * const spec: Fig.Spec = {
+   * const spec: CLI.Spec = {
    *   name: "example",
    *   options: [
    *     { name: ["-a", "--abc"] },
@@ -742,7 +751,7 @@ export interface Option {
    * don't happen.
    *
    * In reality, the types _are_ compatible, but assigning one to another is
-   * most likely a mistake.
+   * almost definitely a mistake.
    *
    * @ignore
    */
@@ -767,9 +776,6 @@ export interface Arg {
   /** Description of the argument */
   description?: string;
 
-  /** The icon to display next to the suggestion (URL, base64, or `fig://` icon) */
-  icon?: string;
-
   /**
    * Allow this argument to take unlimited values
    *
@@ -784,186 +790,4 @@ export interface Arg {
    * All following arguments must also be optional.
    */
   isOptional?: true;
-
-  /**
-   * Template used for Fig completions
-   *
-   * This has no effect on parsing and is purely for use in completions.
-   */
-  template?: Template;
-
-  /** Wait 100ms before running generators */
-  debounce?: true;
-
-  /**
-   * When the argument is written, attempt to load suggestions for that command
-   *
-   * This has no effect on parsing and is purely for use in completions.
-   *
-   * This property is typically used for command-runners, like `time`, `exec`
-   * and `xargs`.
-   *
-   * @example
-   * import { readLines } from "https://deno.land/std/io/buffer.ts";
-   * ```ts
-   * // eg:  ls -la1 | append-arg rm -rf
-   * const spec: Fig.Spec = {
-   *   name: "append-arg",
-   *   description: "Like xargs, but line-based",
-   *   args: {
-   *     name: "command",
-   *     isVariadic: true,
-   *     isCommand: true
-   *   },
-   *   async action({ args: [cmd, ...rest] }) {
-   *     const td = new TextDecoder();
-   *     for await (const line of readLines(Deno.stdin)) {
-   *       const output = await Deno.spawn(cmd, {
-   *         args: [...rest, line],
-   *       });
-   *       console.log(td.decode(output.stdout));
-   *     }
-   *   }
-   * };
-   * ```
-   */
-  isCommand?: true;
-
-  /**
-   * Load suggestions from .fig/autocomplete/build relative to the typed path
-   *
-   * This has no effect on parsing and is purely for use in completions.
-   */
-  isScript?: true;
-
-  /**
-   * Provide a suggestion at the top of the list with the currently typed token
-   *
-   * This has no effect on parsing and is purely for use in completions.
-   */
-  suggestCurrentToken?: true;
-
-  /**
-   * Static suggestions that should be displayed while typing this argument
-   *
-   * This has no effect on parsing and is purely for use in completions.
-   */
-  suggestions?: readonly string[] | readonly Suggestion[];
-
-  /**
-   * Generate dynamic suggestions while typing this argument
-   *
-   * Because generators are invoked on the CLI itself, they're relatively
-   * expensive. For this reason, if it is possible to have a static list
-   * of suggestions, you should use `suggestions` instead.
-   *
-   * If you have to have dynamic suggestions, use `script` and `splitOn` if
-   * possible - try to avoid `custom`. Using `custom` incurs the cost of:
-   *   Fig > Encode > Deno > Decode > Run generator > Encode > Fig > Decode
-   * Using `script` and `splitOn` looks more like:
-   *   Fig > Bash > Fig
-   *
-   * This has no effect on parsing and is purely for use in completions.
-   */
-  generators?: SingleOrArray<Generator>;
-
-  /**
-   * ⚠️  This value is ONLY used for documentation ⚠️
-   *
-   * Default value for the argument
-   *
-   * This has no effect on parsing and is purely for use in completions.
-   * **Using this property will not provide a default value.**
-   */
-  default?: string;
-}
-
-type Template =
-  | "help"
-  | "history"
-  | "folders"
-  | "filepaths"
-  | ["folders", "filepaths"]
-  | ["filepaths", "folders"];
-
-type GeneratorCache =
-  | {
-    strategy: "stale-while-revalidate";
-    ttl?: number;
-    cacheByDirectory?: true;
-  }
-  | {
-    strategy: "max-age";
-    ttl: number;
-    cacheByDirectory?: true;
-  };
-
-/**
- * Generators create suggestions to be displayed in Fig's autocomplete
- */
-export interface Generator {
-  /** Use everything after this string as the search filter */
-  getQueryTerm?: string;
-
-  /**
-   * Re-run the generator when this is typed
-   *
-   * If the trigger is the literal string `"token"` then the generator will
-   * be run on every token.
-   */
-  trigger?: string;
-
-  /** Use a template  */
-  template?: Template;
-
-  /** Run this script */
-  script?: string;
-
-  /** Split the script output on this string */
-  splitOn?: string;
-
-  /** Execution timeout for the generator */
-  scriptTimeout?: number;
-
-  /** The function that gets executed when the generator is triggered */
-  custom?: (tokens: string[]) =>
-    | (Suggestion | string)[]
-    | Promise<(Suggestion | string)[]>;
-
-  /** Cache the result of running the generator until the next time it's run */
-  cache?: GeneratorCache;
-}
-
-/** A suggestion displayed in the Fig autocomplete UI */
-export interface Suggestion {
-  /** Name that the Fig parser will match on */
-  name: SingleOrArray<string>;
-
-  /** How the suggestion will be displayed in the UI */
-  displayName?: string;
-
-  /** The value inserted when the suggestion is accepted */
-  insertValue?: string;
-
-  /** Additional information that should be displayed */
-  description?: string;
-
-  /** Hide the suggestion until the `name` is typed entirely */
-  hidden?: true;
-
-  /** The icon to display next to the suggestion (URL, base64, or `fig://` icon) */
-  icon?: string;
-
-  /** How high should the suggestion be ranked? (0 - 100) */
-  priority?: number;
-
-  /** The type of suggestion (changes interaction and icon) */
-  type?:
-    | "folder"
-    | "file"
-    | "arg"
-    | "subcommand"
-    | "option"
-    | "special"
-    | "shortcut";
 }

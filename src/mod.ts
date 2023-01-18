@@ -3,7 +3,6 @@ export type {
   ActionInit,
   Arg,
   CommandPath,
-  Generator,
   NonEmptyArray,
   Option,
   OptionArgs,
@@ -11,7 +10,7 @@ export type {
   SingleOrArrayOrEmpty,
   Spec,
   Subcommand,
-  Suggestion,
+  SubcommandParserDirectives,
 } from "./types.ts";
 export { run } from "./run.ts";
 export { help, helpCommand } from "./help.ts";
