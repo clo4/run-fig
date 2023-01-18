@@ -2,8 +2,8 @@ import type {
   Action,
   Arg,
   Command,
+  Flag,
   NonEmptyArray,
-  Option,
   SingleOrArray,
 } from "./types.ts";
 import { makeArray, makeArray1 } from "./collections.ts";
@@ -151,7 +151,7 @@ export const usage: Action = ({ path, args: [command], error, help }) => {
 
   const subcommands = path
     .at(-1)
-    ?.subcommands?.filter((cmd) => !cmd.hidden)
+    ?.subcommands?.filter((cmd) => !cmd.isHidden)
     .flatMap((cmd) => cmd.name);
 
   if (subcommands && subcommands.length > 0) {
@@ -276,7 +276,7 @@ export const helpCommand: Command = {
       // The error message will be different depending on whether there
       // are visible subcommands or not.
       const subcommands = parent.subcommands
-        .filter((cmd) => !cmd.hidden)
+        .filter((cmd) => !cmd.isHidden)
         .flatMap((cmd) => cmd.name);
 
       // If there are visible subcommands, suggesting the closest one
@@ -337,7 +337,7 @@ export const helpCommand: Command = {
  * };
  * ```
  */
-export const help: Option = {
+export const help: Flag = {
   name: ["-h", "--help"],
   description: "Print a help message",
   isPersistent: true,
@@ -390,8 +390,8 @@ function generateHelpString(
   const subcommands: readonly Command[] = command.subcommands ?? [];
 
   // 📍 Options
-  const persistentOptions: Option[] = [];
-  const normalOptions: Option[] = [];
+  const persistentOptions: Flag[] = [];
+  const normalOptions: Flag[] = [];
 
   // Because the options should be displayed in a way that's easy to digest,
   // and because options can also be inherited, there is some more complicated
@@ -403,19 +403,19 @@ function generateHelpString(
     // At the root level, there is no meaningful distinction between
     // persistent and normal options, so we can just put them all into
     // the normal options array.
-    if (command.options) {
-      normalOptions.push(...command.options);
+    if (command.flags) {
+      normalOptions.push(...command.flags);
     }
   } else {
     // This is either a nested command or a command with visible subcommands,
     // so the distinction between persistent and normal options is important.
     for (const subcommand of subcommands) {
-      if (!subcommand.options) {
+      if (!subcommand.flags) {
         continue;
       }
-      const options = subcommand.options;
+      const options = subcommand.flags;
       for (const option of options) {
-        if (option.hidden) {
+        if (option.isHidden) {
           continue;
         }
         if (!option.isPersistent) {
@@ -424,9 +424,9 @@ function generateHelpString(
         persistentOptions.push(option);
       }
     }
-    if (command.options) {
-      for (const option of command.options) {
-        if (option.hidden) {
+    if (command.flags) {
+      for (const option of command.flags) {
+        if (option.isHidden) {
           continue;
         }
         if (option.isPersistent) {
@@ -444,7 +444,7 @@ function generateHelpString(
     }
     const parts: string[] = [];
 
-    const requiredOptions: Option[] = [];
+    const requiredOptions: Flag[] = [];
     for (const option of normalOptions) {
       if (option.isRequired) {
         requiredOptions.push(option);
@@ -517,7 +517,7 @@ function getSections(commands: NonEmptyArray<Command>): HelpSections {
 
   const subcommands: HelpSections["subcommands"] = command.subcommands
     ? command.subcommands
-      .filter((command) => !command.hidden)
+      .filter((command) => !command.isHidden)
       .map((command) => [
         makeArray1(command.name)
           .sort((a, b) => a.length - b.length)
@@ -526,8 +526,8 @@ function getSections(commands: NonEmptyArray<Command>): HelpSections {
       ])
     : [];
 
-  let persistentOptionObjects: Option[] = [];
-  let optionObjects: Option[] = [];
+  let persistentOptionObjects: Flag[] = [];
+  let optionObjects: Flag[] = [];
 
   let persistentOptions: HelpSections["persistentOptions"] = [];
   let options: HelpSections["options"] = [];
@@ -535,8 +535,8 @@ function getSections(commands: NonEmptyArray<Command>): HelpSections {
   // The concept of "persistent options" makes no sense if there are
   // no subcommands, so all options should go in the options section.
   if (commands.length === 1 && subcommands.length === 0) {
-    optionObjects = command.options
-      ? command.options.filter((option) => !option.hidden)
+    optionObjects = command.flags
+      ? command.flags.filter((option) => !option.isHidden)
       : [];
     options = optionObjects.map((option) => [
       optionToString(option),
@@ -544,18 +544,18 @@ function getSections(commands: NonEmptyArray<Command>): HelpSections {
     ]);
   } else {
     persistentOptionObjects = commands
-      .map((command) => command.options)
+      .map((command) => command.flags)
       .filter(nonNullable)
       .flat()
-      .filter((option) => option.isPersistent && !option.hidden);
+      .filter((option) => option.isPersistent && !option.isHidden);
 
     persistentOptions = persistentOptionObjects.map((option) => [
       optionToString(option),
       option.description ?? defaultDesc,
     ]);
 
-    optionObjects = (command.options ?? []).filter(
-      (option) => !option.hidden && !option.isPersistent,
+    optionObjects = (command.flags ?? []).filter(
+      (option) => !option.isHidden && !option.isPersistent,
     );
 
     options = optionObjects.map((option) => [
@@ -685,7 +685,7 @@ export function getLongestString(strings: NonEmptyArray<string>): string {
   return longest;
 }
 
-export function optionToString(option: Option): string {
+export function optionToString(option: Flag): string {
   const name = makeArray1(option.name)
     .sort((a, b) => a.length - b.length)
     .join(", ");

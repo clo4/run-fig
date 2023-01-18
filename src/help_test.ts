@@ -29,7 +29,7 @@ Deno.test({
     const spec: Command = {
       name: "TEST_NAME",
       description: "019283",
-      options: [
+      flags: [
         {
           name: ["-o", "--option"],
           description: "112233",
@@ -55,7 +55,7 @@ Deno.test({
   fn() {
     const spec: Command = {
       name: "TEST_NAME",
-      options: [
+      flags: [
         {
           name: ["-o", "--option"],
           description: "112233",
@@ -83,7 +83,7 @@ Deno.test({
     const spec: Command = {
       name: "TEST_NAME",
       requiresSubcommand: true,
-      options: [
+      flags: [
         {
           name: ["-o", "--option"],
           description: "112233",
@@ -111,7 +111,7 @@ Deno.test({
     const spec: Command = {
       name: "TEST_NAME",
       action: usage,
-      options: [
+      flags: [
         {
           name: ["-o", "--option"],
           description: "112233",
@@ -122,12 +122,12 @@ Deno.test({
         {
           name: "unique-name",
           description: "98765",
-          options: [{ name: "--silent", description: "888888" }],
+          flags: [{ name: "--silent", description: "888888" }],
         },
         {
           name: "very-good",
           description: "12345",
-          options: [{ name: "--not-here", description: "DO NOT INCLUDE" }],
+          flags: [{ name: "--not-here", description: "DO NOT INCLUDE" }],
         },
       ],
     };
@@ -151,7 +151,7 @@ Deno.test({
     const spec: Command = {
       name: "TEST_NAME",
       action: usage,
-      options: [
+      flags: [
         {
           name: ["-o", "--option"],
           description: "112233",

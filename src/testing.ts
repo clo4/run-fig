@@ -4,7 +4,7 @@
  * @module
  */
 
-import type { Arg, Command, Option, SingleOrArray } from "./types.ts";
+import type { Arg, Command, Flag, SingleOrArray } from "./types.ts";
 import { isArray, makeArray } from "./collections.ts";
 import { assert, getMaxArgs, getMinArgs } from "./parse.ts";
 
@@ -24,7 +24,7 @@ function forEachArgArray(
 ): void {
   path = path.concat(spec);
   fn(makeArray(spec.args), path);
-  for (const option of makeArray(spec.options)) {
+  for (const option of makeArray(spec.flags)) {
     fn(makeArray(option.args), path);
   }
   for (const command of makeArray(spec.subcommands)) {
@@ -35,11 +35,11 @@ function forEachArgArray(
 /** Run a function once for each `options` property in the spec (recursive) */
 function forEachOptionArray(
   spec: Command,
-  fn: (options: Option[], path: Command[]) => void,
+  fn: (options: Flag[], path: Command[]) => void,
   path: Command[] = [],
 ): void {
   path = path.concat(spec);
-  fn(makeArray(spec.options), path);
+  fn(makeArray(spec.flags), path);
   for (const command of makeArray(spec.subcommands)) {
     forEachOptionArray(command, fn, path);
   }
@@ -153,7 +153,7 @@ export function assertRepeatableOptionsArePositiveIntegers(
 export function assertOptionsHaveLocallyUniqueNames(spec: Command): void {
   forEachCommand(spec, (spec, path) => {
     const optionNames = new Set<string>();
-    for (const [index, option] of makeArray(spec.options).entries()) {
+    for (const [index, option] of makeArray(spec.flags).entries()) {
       for (const name of makeArray(option.name)) {
         // deno-fmt-ignore
         assert(
@@ -176,8 +176,8 @@ export function assertOptionsDoNotShadowPersistentOptions(spec: Command): void {
       path
         .slice(0, -1)
         .flatMap((command) =>
-          command.options
-            ? command.options
+          command.flags
+            ? command.flags
               .filter((option) => option.isPersistent)
               .flatMap((option) => option.name)
             : []
@@ -555,12 +555,12 @@ export function assertCommonOptionsArePersistent(spec: Command): void {
     if (!command.subcommands) {
       return;
     }
-    for (const option of makeArray(command.options)) {
+    for (const option of makeArray(command.flags)) {
       const allChildCommands: Command[] = [];
       forEachCommand(command, (cmd) => allChildCommands.push(cmd));
 
       const allShareOption = allChildCommands.every((cmd) =>
-        makeArray(cmd.options).some((o) => isSameName(option.name, o.name))
+        makeArray(cmd.flags).some((o) => isSameName(option.name, o.name))
       );
 
       if (
@@ -589,8 +589,8 @@ export function assertOptionNameReferencesExist(spec: Command): void {
       ...path
         .slice(0, -1)
         .flatMap((command) =>
-          command.options
-            ? command.options
+          command.flags
+            ? command.flags
               .filter((option) => option.isPersistent)
               .flatMap((option) => option.name)
             : []

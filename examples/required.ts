@@ -5,7 +5,7 @@ CLI.run({
   subcommands: [
     {
       name: "bench",
-      options: [
+      flags: [
         {
           name: "--unstable",
           isRequired: true,

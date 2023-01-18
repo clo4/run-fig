@@ -1,4 +1,4 @@
-import type { Action, Command, NonEmptyArray, Option } from "./types.ts";
+import type { Action, Command, Flag, NonEmptyArray } from "./types.ts";
 import { analyze, BaseToken, TokenCommand, TokenOption } from "./analyze.ts";
 import { isArray, makeArray, setEach } from "./collections.ts";
 import {
@@ -121,11 +121,11 @@ export function parse(input: readonly string[], spec: Command): ParseResult {
   let argSeparatorIndex = -1;
 
   // Each item in this set must be provided
-  const dependsOnOptions = [] as Option[];
+  const dependsOnOptions = [] as Flag[];
   // Each item in this set cannot be provided
-  const exclusiveOnOptions = [] as Option[];
+  const exclusiveOnOptions = [] as Flag[];
 
-  const parseOption = (token: TokenOption<Option>) => {
+  const parseOption = (token: TokenOption<Flag>) => {
     const option = token.option;
 
     // Don't allow repeating non-repeatable options
@@ -223,7 +223,7 @@ export function parse(input: readonly string[], spec: Command): ParseResult {
 
   const ctx = () => ({ path } as ErrorContext);
 
-  const { finalState, tokens } = analyze<Command, Option>(input, spec);
+  const { finalState, tokens } = analyze<Command, Flag>(input, spec);
 
   for (const token of tokens) {
     switch (state) {

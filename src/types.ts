@@ -39,7 +39,7 @@ export type SingleOrArrayOrEmpty<T> = T | [] | readonly [T, T, ...T[]];
  * ```ts
  * export const spec: CLI.Spec = {
  *   name: "rm",
- *   args: { name: "path", isVariadic: true },
+ *   args: { name: "path", isVariadic: boolean },
  *   options: [
  *     { name: "-r", description: "Recursive" },
  *     { name: "-f", description: "Force" },
@@ -76,10 +76,7 @@ export interface OptionArgs {
   readonly options: Map<string, string[]>;
 
   /** Get the option's arguments, with a guard variable as the first value */
-  get(name: string): [true, ...string[]] | [false];
-
-  /** Check if the option was provided */
-  has(name: string): boolean;
+  get(name: string): [has: boolean, ...values: string[]] | [has: false];
 
   /** Count the number of arguments, useful for `isRepeatable` */
   count(name: string): number;
@@ -110,7 +107,7 @@ export interface ActionInit {
    *   name: "find-text",
    *   args: [
    *     { name: "text" },
-   *     { name: "files", isVariadic: true },
+   *     { name: "files", isVariadic: boolean },
    *   ],
    *   action({ args: [text, ...files] }) {
    *     // ...
@@ -123,7 +120,7 @@ export interface ActionInit {
    * const spec: CLI.Spec = {
    *   name: "mv",
    *   args: [
-   *     { name: "source", isVariadic: true },
+   *     { name: "source", isVariadic: boolean },
    *     { name: "target" },
    *   ],
    *   // mv <sources...> <target>
@@ -157,8 +154,8 @@ export interface ActionInit {
    * const spec: CLI.Spec = {
    *   name: "example",
    *   args: [
-   *     { name: "one", isVariadic: true },
-   *     { name: "two", isVariadic: true },
+   *     { name: "one", isVariadic: boolean },
+   *     { name: "two", isVariadic: boolean },
    *   ],
    *   action({ args, argSeparatorIndex: idx }) {
    *     if (!(0 < idx && idx <= args.length)) {
@@ -192,7 +189,7 @@ export interface ActionInit {
    * ```
    * const spec: CLI.Spec = {
    *   name: "example",
-   *   requiresSubcommand: true,
+   *   requiresSubcommand: boolean,
    *   action({ help }) {
    *     console.log("A command is required");
    *     console.log(help({ usage: false }));
@@ -204,10 +201,10 @@ export interface ActionInit {
    * ```
    */
   help(options?: {
-    /** Include the command description? (default: true) */
+    /** Include the command description? (default: boolean) */
     description?: boolean;
 
-    /** Include the usage summary? (default: true) */
+    /** Include the usage summary? (default: boolean) */
     usage?: boolean;
 
     /**
@@ -243,7 +240,7 @@ export interface ActionInit {
  * ```ts
  * export const spec: CLI.Spec = {
  *   name: "rm",
- *   args: { name: "path", isVariadic: true },
+ *   args: { name: "path", isVariadic: boolean },
  *   options: [
  *     { name: "-r", description: "Recursive" },
  *     { name: "-f", description: "Force" },
@@ -273,7 +270,7 @@ export interface CommandParserDirectives {
    * unknown options.
    *
    * If it's false, option names can only start with `-`, `+`, or `--`. When
-   * it's true, option names are treated literally, which means you can use
+   * it's boolean, option names are treated literally, which means you can use
    * names such as `abc` instead of `--abc`.
    *
    * This is inherited for all subcommands unless a child command sets it
@@ -324,8 +321,8 @@ export interface CommandParserDirectives {
  * export const spec: CLI.Spec = {
  *   name: "deno",
  *   options: [
- *     { name: "--unstable", isPersistent: true },
- *     { name: ["-q", "--quiet"], isPersistent: true },
+ *     { name: "--unstable", isPersistent: boolean },
+ *     { name: ["-q", "--quiet"], isPersistent: boolean },
  *   ],
  *   subcommands: [
  *     {
@@ -336,10 +333,10 @@ export interface CommandParserDirectives {
  *       ],
  *       args: [
  *         { name: "script" },
- *         { name: "args", isVariadic: true, isOptional: true },
+ *         { name: "args", isVariadic: boolean, isOptional: boolean },
  *       ],
  *       parserDirectives: {
- *         optionsMustPrecedeArguments: true,
+ *         optionsMustPrecedeArguments: boolean,
  *       },
  *       action({ options, args: [script, ...args] }) {
  *         // ...
@@ -352,20 +349,6 @@ export interface CommandParserDirectives {
 export interface Command {
   /** Name of the command, used for matching and filtering */
   name: SingleOrArray<string>;
-
-  /**
-   * Insert this string instead of the name
-   *
-   * This is only used in fig completions.
-   */
-  insertValue?: string;
-
-  /**
-   * Display this string instead of the name
-   *
-   * This is only used in fig completions.
-   */
-  displayName?: string;
 
   /**
    * Description of the command
@@ -398,9 +381,6 @@ export interface Command {
    */
   description?: string;
 
-  /** The icon to display next to the suggestion (URL, base64, or `fig://` icon) */
-  icon?: string;
-
   /** How high should the suggestion be ranked? (0 - 100) */
   priority?: number;
 
@@ -427,10 +407,10 @@ export interface Command {
    *     options: [
    *       {
    *         name: "--allow-read",
-   *         requiresSeparator: true,
+   *         requiresSeparator: boolean,
    *         args: {
    *           name: "files",
-   *           isOptional: true,
+   *           isOptional: boolean,
    *         },
    *       },
    *     ],
@@ -446,7 +426,7 @@ export interface Command {
    * };
    * ```
    */
-  options?: NonEmptyArray<Option>;
+  flags?: NonEmptyArray<Flag>;
 
   /**
    * Commands of this command
@@ -457,15 +437,15 @@ export interface Command {
    * command.
    *
    * Note that _this_ command's options are _not_ automatically inherited by
-   * subcommands, unless the option is persistent (`isPersistent: true`)
+   * subcommands, unless the option is persistent (`isPersistent: boolean`)
    */
   subcommands?: NonEmptyArray<Command>;
 
-  /** Directly control parser behavior, such as "what counts as an option" */
+  /** Directly control parser behavior, such as "what counts as a flag" */
   parserDirectives?: CommandParserDirectives;
 
   /** Hide this command from any place it may be displayed */
-  hidden?: true;
+  isHidden?: boolean;
 
   /**
    * If there is no action on this command, print usage information instead
@@ -474,16 +454,16 @@ export interface Command {
    * help information. This allows you to customize the behavior while still
    * informing the autocomplete engine.
    *
-   * When this property is true, autocomplete will always insert a space after
+   * When this property is boolean, autocomplete will always insert a space after
    * the command name.
    *
    * Note that actions are optional if using `requiresSubcommand`.
    *
-   * NOTE: When `requiresSubcommand` is true, arguments are allowed even if
+   * NOTE: When `requiresSubcommand` is boolean, arguments are allowed even if
    * the command doesn't allow them. This is so the runtime can implement a
    * more useful error message for typos.
    */
-  requiresSubcommand?: true;
+  requiresSubcommand?: boolean;
 
   /**
    * Run this action when the command is used
@@ -501,14 +481,14 @@ export interface Command {
    *   name: "sprint",
    *   description: "Execute a command",
    *   args: [
-   *     { name: "command", isCommand: true },
-   *     { name: "args", isVariadic: true, isOptional: true },
+   *     { name: "command", isCommand: boolean },
+   *     { name: "args", isVariadic: boolean, isOptional: boolean },
    *   ],
    *   options: [
    *     { name: "--time", description: "Time the execution" },
    *     { name: "--output", args: { name: "path" } },
-   *     { name: "--censor", args: { name: "words", isVariadic: true } },
-   *     { name: ["-v", "--verbose"], isRepeatable: true },
+   *     { name: "--censor", args: { name: "words", isVariadic: boolean } },
+   *     { name: ["-v", "--verbose"], isRepeatable: boolean },
    *   ],
    *   action({ args: [command, ...args], options, error }) {
    *     commands; // => string
@@ -553,7 +533,7 @@ export interface Command {
  *
  * By default, options must start with `-` (eg. `-a`), `+` (`+o`), or `--` (`--abc`).
  * Option names that start with anything else won't be found unless a parent
- * command has `parserDirectives.flagsArePosixNoncompliant` set to `true`,
+ * command has `parserDirectives.flagsArePosixNoncompliant` set to `boolean`,
  * which enables literal option names.
  *
  * Options can also have actions, which will be executed _instead of the subcommand_.
@@ -588,7 +568,7 @@ export interface Command {
  * };
  * ```
  */
-export interface Option {
+export interface Flag {
   /**
    * Name(s) of the option, including leading dashes
    *
@@ -596,17 +576,8 @@ export interface Option {
    */
   name: SingleOrArray<string>;
 
-  /** Insert this string instead of the name */
-  insertValue?: string;
-
-  /** Display this string instead of the name */
-  displayName?: string;
-
   /** Description of the option */
   description?: string;
-
-  /** The icon to display next to the suggestion (URL, base64, or `fig://` icon) */
-  icon?: string;
 
   /** How high should the suggestion be ranked? (0 - 100) */
   priority?: number;
@@ -619,19 +590,19 @@ export interface Option {
   args?: SingleOrArray<Arg>;
 
   /** Allow this option to be used for all descendent subcommands */
-  isPersistent?: true;
+  isPersistent?: boolean;
 
   /** Hide this option from any place it may be displayed */
-  hidden?: true;
+  isHidden?: boolean;
 
   /** Only allow arguments to be provided with a separator */
-  requiresSeparator?: true | string;
+  requiresSeparator?: boolean | string;
 
   /**
    * Allow this option to be provided multiple times
    *
    * Due to limitations with parsing, repeatable options cannot take arguments.
-   * For example, with `{ name: "-i", args: { isOptional: true }, isRepeatable: true }`, is
+   * For example, with `{ name: "-i", args: { isOptional: boolean }, isRepeatable: boolean }`, is
    * `-iii` the same as `-i -i -i` or `-i ii`?
    *
    * Instead of using a repeatable option with an argument, use a non-repeatable
@@ -657,7 +628,7 @@ export interface Option {
    * };
    * ```
    */
-  isRepeatable?: true | number;
+  isRepeatable?: boolean | number;
 
   /**
    * Fail if the option isn't provided
@@ -676,7 +647,7 @@ export interface Option {
    * - Knowing that the default behavior, ie. _without_ the option, isn't
    *   implemented yet but will be in the future.
    */
-  isRequired?: true;
+  isRequired?: boolean;
 
   /**
    * Fail parsing if these options are provided
@@ -739,7 +710,7 @@ export interface Option {
 
   /**
    * This property never exists. It's used purely to break compatibility
-   * between `Option` and `Command`, so that accidental assignments
+   * between `Flag` and `Command`, so that accidental assignments
    * don't happen.
    *
    * In reality, the types _are_ compatible, but assigning one to another is
@@ -747,7 +718,7 @@ export interface Option {
    *
    * @ignore
    */
-  [kind]?: "Option";
+  [kind]?: "Flag";
 }
 
 /**
@@ -755,8 +726,8 @@ export interface Option {
  *
  * This is the script name in `deno run script.ts`, or the text in `grep TODO`.
  *
- * Args are required by default. To make them optional, set `isOptional: true`.
- * They can also be variadic with `isVariadic: true`, meaning they take an
+ * Args are required by default. To make them optional, set `isOptional: boolean`.
+ * They can also be variadic with `isVariadic: boolean`, meaning they take an
  * infinite number of values instead of only one.
  *
  * Variadic option arguments are ended by finding another option.
@@ -771,15 +742,15 @@ export interface Arg {
   /**
    * Allow this argument to take unlimited values
    *
-   * A variadic argument _without_ `isOptional: true` requires at least
+   * A variadic argument _without_ `isOptional: boolean` requires at least
    * one value.
    */
-  isVariadic?: true;
+  isVariadic?: boolean;
 
   /**
    * Allow this argument to be omitted
    *
    * All following arguments must also be optional.
    */
-  isOptional?: true;
+  isOptional?: boolean;
 }
