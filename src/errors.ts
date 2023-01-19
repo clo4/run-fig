@@ -1,8 +1,4 @@
-import type {
-  BaseToken,
-  TokenOptionArg,
-  TokenUnknownOption,
-} from "./analyze.ts";
+import type { BaseToken, TokenFlagArg, TokenUnknownFlag } from "./analyze.ts";
 import type { Command, NonEmptyArray } from "./types.ts";
 
 const repr = JSON.stringify as (str: string) => string;
@@ -23,35 +19,35 @@ export class ParseError extends Error {
   }
 }
 
-export class UnknownOption extends ParseError {
+export class UnknownFlag extends ParseError {
   readonly index: number;
   readonly start: number;
   readonly end: number;
   readonly option: string;
-  readonly validOptions: string[];
-  constructor(token: TokenUnknownOption, context: ErrorContext) {
+  readonly validFlags: string[];
+  constructor(token: TokenUnknownFlag, context: ErrorContext) {
     // deno-fmt-ignore
     const msg = `${repr(
       token.literal
     )} looks like a flag, but is unknown in this context`;
     super(context, msg);
     this.option = token.literal;
-    this.validOptions = token.validOptions;
+    this.validFlags = token.validFlags;
     this.index = token.index;
     this.start = token.start;
     this.end = token.end;
   }
 }
 
-export class InvalidOptionArg extends ParseError {
+export class InvalidFlagArg extends ParseError {
   readonly index: number;
   readonly start: number;
   readonly end: number;
   readonly arg: string;
   readonly option: string;
-  constructor(token: TokenOptionArg, context: ErrorContext) {
+  constructor(token: TokenFlagArg, context: ErrorContext) {
     // deno-fmt-ignore
-    const msg = `Option ${token.literal} doesn't take arguments`;
+    const msg = `Flag ${token.literal} doesn't take arguments`;
     super(context, msg);
     this.index = token.index;
     this.start = token.start;
@@ -73,13 +69,13 @@ export class TooManyArguments extends ParseError {
   }
 }
 
-export class TooFewOptionArguments extends ParseError {
+export class TooFewFlagArguments extends ParseError {
   constructor(min: number, max: number, context: ErrorContext) {
     const msg = min === max
-      ? `Option needs ${min} argument${min === 1 ? "" : "s"}`
+      ? `Flag needs ${min} argument${min === 1 ? "" : "s"}`
       : !Number.isFinite(max)
-      ? `Option needs at least ${min} argument${min === 1 ? "" : "s"}`
-      : `Option needs between ${min} and ${max} arguments`;
+      ? `Flag needs at least ${min} argument${min === 1 ? "" : "s"}`
+      : `Flag needs between ${min} and ${max} arguments`;
     super(context, msg);
   }
 }
@@ -95,9 +91,9 @@ export class TooFewArguments extends ParseError {
   }
 }
 
-export class MissingRequiredOption extends ParseError {
+export class MissingRequiredFlag extends ParseError {
   constructor(name: string, context: ErrorContext) {
-    const msg = `Option ${name} is required, but wasn't found`;
+    const msg = `Flag ${name} is required, but wasn't found`;
     super(context, msg);
   }
 }

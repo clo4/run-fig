@@ -1,7 +1,7 @@
 import type { ActionInit, Command, Spec } from "./types.ts";
 import { parse, ParseResult } from "./parse.ts";
 import { getHelp } from "./help.ts";
-import { ParseError, UnknownOption } from "./errors.ts";
+import { ParseError, UnknownFlag } from "./errors.ts";
 
 export function printError(...strings: unknown[]): void {
   console.error("%cError:", "color: red", ...strings);
@@ -18,7 +18,7 @@ export function printError(...strings: unknown[]): void {
  * - If the command doesn't have any action associated with it,
  *   it returns 1.
  * - If the action returns a number above 255, the value is 255.
- * - If the action returns a number below zero, the value is 0.
+ * - If the action returns a number below 0, the value is 0.
  *
  * The action that gets run is the final command action. If an
  * option with an action was used, the final option action will be
@@ -49,12 +49,12 @@ export async function execute(
     // `spec` is a `Command` because it's now guaranteed to have a name
     result = parse(args, spec as Command);
   } catch (error: unknown) {
-    if (error instanceof UnknownOption) {
+    if (error instanceof UnknownFlag) {
       const helpMessage = getHelp(error.context.path, {
         description: false,
         didYouMean: {
           input: error.option,
-          choices: error.validOptions,
+          choices: error.validFlags,
         },
       });
       printError(`${error.message}\n\n${helpMessage}`);
@@ -72,13 +72,13 @@ export async function execute(
     return 1;
   }
 
-  const action = result.optionActions.at(-1) ?? result.actions.at(-1);
+  const action = result.flagActions.at(-1) ?? result.actions.at(-1);
 
   if (!action) {
     return 1;
   }
 
-  const options = result.options;
+  const options = result.flags;
   const actionInit: ActionInit = {
     error: printError,
     help: (options) => getHelp(options?.path || result.path, options),

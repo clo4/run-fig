@@ -27,7 +27,7 @@ export type SingleOrArray<T> = T | readonly [T, T, ...T[]];
 export type SingleOrArrayOrEmpty<T> = T | [] | readonly [T, T, ...T[]];
 
 /**
- * An action is a function that's associated with a command or option
+ * An action is a function that's associated with a command or flag
  *
  * It can be async, and returns either nothing or the desired exit code.
  * Simple CLIs can put all the logic into this function, but a more
@@ -72,10 +72,36 @@ export interface Action {
 
 /** Use the current flags */
 export interface FlagArgs {
-  /** Escape hatch: the actual map of option names to values */
+  /** Escape hatch: the actual map of flag names to values */
   readonly flags: Map<string, string[]>;
 
-  /** Get the option's arguments, with a guard variable as the first value */
+  /** Check if the flag was used */
+  has(name: string): boolean;
+
+  /**
+   * Get the flag's arguments, with a guard variable as the first value
+   *
+   * The guard allows you to branch based on whether the flag was used or not.
+   * It can be safely ignored if not required.
+   *
+   * ## Example
+   * ```ts
+   * const spec: CLI.Spec = {
+   *   name: "deno",
+   *   flags: [{
+   *     name: "--allow-read",
+   *     description: "Allow read access",
+   *     args: { name: "path" },
+   *   }],
+   *   action({ flags }) {
+   *     const [hasRead, path = "/"] = flags.get("--allow-read");
+   *     if (hasRead) {
+   *       // Allow program to read children of path
+   *     }
+   *   }
+   * };
+   * ```
+   */
   get(name: string): [has: boolean, ...values: string[]] | [has: false];
 
   /** Count the number of arguments, useful for `isRepeatable` */
@@ -266,11 +292,11 @@ export interface Spec extends Omit<Command, "name"> {
  */
 export interface CommandParserDirectives {
   /**
-   * Makes all option names literal, disables option chaining, and disables
+   * Makes all flag names literal, disables flag chaining, and disables
    * unknown flags.
    *
-   * If it's false, option names can only start with `-`, `+`, or `--`. When
-   * it's boolean, option names are treated literally, which means you can use
+   * If it's false, flag names can only start with `-`, `+`, or `--`. When
+   * it's boolean, flag names are treated literally, which means you can use
    * names such as `abc` instead of `--abc`.
    *
    * This is inherited for all subcommands unless a child command sets it
@@ -287,13 +313,13 @@ export interface CommandParserDirectives {
   flagsMustPrecedeArguments?: boolean;
 
   /**
-   * The separators that can be used for an option argument
+   * The separators that can be used for a flag argument
    *
-   * To disable option arg separators, set this value to an empty array.
+   * To disable flag arg separators, set this value to an empty array.
    *
    * This is inherited for all subcommands unless overridden.
    */
-  optionArgSeparators?: SingleOrArrayOrEmpty<string>;
+  flagArgSeparators?: SingleOrArrayOrEmpty<string>;
 
   /**
    * Match command names on the shortest unique segment instead of
@@ -434,7 +460,7 @@ export interface Command {
    * command.
    *
    * Note that _this_ command's flags are _not_ automatically inherited by
-   * subcommands, unless the option is persistent (`isPersistent: boolean`)
+   * subcommands, unless the flag is persistent (`isPersistent: boolean`)
    */
   subcommands?: NonEmptyArray<Command>;
 
@@ -525,7 +551,7 @@ export interface Command {
  * By default, flags must start with `-` (eg. `-a`), `+` (`+o`), or `--` (`--abc`).
  * Option names that start with anything else won't be found unless a parent
  * command has `parserDirectives.flagsArePosixNoncompliant` set to `boolean`,
- * which enables literal option names.
+ * which enables literal flag names.
  *
  * flags can also have actions, which will be executed _instead of the subcommand_.
  * These actions should not be used for slight changes in behavior, but instead for
@@ -561,45 +587,45 @@ export interface Command {
  */
 export interface Flag {
   /**
-   * Name(s) of the option, including leading dashes
+   * Name(s) of the flag, including leading dashes
    *
-   * The option can be invoked with any of these names. You should include the leading dashes.
+   * The flag can be invoked with any of these names. You should include the leading dashes.
    */
   name: SingleOrArray<string>;
 
-  /** Description of the option */
+  /** Description of the flag */
   description?: string;
 
   /** How high should the suggestion be ranked? (0 - 100) */
   priority?: number;
 
   /**
-   * Arguments this option takes
+   * Arguments this flag takes
    *
    * All arguments after an optional argument must also be optional.
    */
   args?: SingleOrArray<Arg>;
 
-  /** Allow this option to be used for all descendent subcommands */
+  /** Allow this flag to be used for all descendent subcommands */
   isPersistent?: boolean;
 
-  /** Hide this option from any place it may be displayed */
+  /** Hide this flag from any place it may be displayed */
   isHidden?: boolean;
 
   /** Only allow arguments to be provided with a separator */
   requiresSeparator?: boolean | string;
 
   /**
-   * Allow this option to be provided multiple times
+   * Allow this flag to be provided multiple times
    *
    * Due to limitations with parsing, repeatable flags cannot take arguments.
    * For example, with `{ name: "-i", args: { isOptional: boolean }, isRepeatable: boolean }`, is
    * `-iii` the same as `-i -i -i` or `-i ii`?
    *
-   * Instead of using a repeatable option with an argument, use a non-repeatable
-   * option with a variadic argument.
+   * Instead of using a repeatable flag with an argument, use a non-repeatable
+   * flag with a variadic argument.
    *
-   * A repeatable option will have multiple empty strings in the array to count
+   * A repeatable flag will have multiple empty strings in the array to count
    * the number of repetitions.
    *
    * ## Example
@@ -622,20 +648,20 @@ export interface Flag {
   isRepeatable?: boolean | number;
 
   /**
-   * Fail if the option isn't provided
+   * Fail if the flag isn't provided
    *
    * ## Don't use this if you can avoid it
    *
-   * "Required option" is an oxymoron, it isn't obvious that an *option* would be
+   * "Required flag" is an oxymoron, it isn't obvious that an *flag* would be
    * mandatory. It means that the user will run the command, see it fail,
-   * run `--help` to understand what the required option is for, *then*
+   * run `--help` to understand what the required flag is for, *then*
    * finally run the command correctly.
    *
-   * There are some cases where a required option makes sense:
+   * There are some cases where a required flag makes sense:
    * - Forcing confirmation of an action, such as `typescript-language-server --stdio`
    *   which makes sure you don't end up in a confusing state by default.
    *   - Note that this would still be better suited to a command.
-   * - Knowing that the default behavior, ie. _without_ the option, isn't
+   * - Knowing that the default behavior, ie. _without_ the flag, isn't
    *   implemented yet but will be in the future.
    */
   isRequired?: boolean;
@@ -643,7 +669,7 @@ export interface Flag {
   /**
    * Fail parsing if these flags are provided
    *
-   * You only need to use one name of the option.
+   * You only need to use one name of the flag.
    *
    * ## Example
    * ```ts
@@ -665,7 +691,7 @@ export interface Flag {
   /**
    * Fail parsing if these flags are _not_ provided
    *
-   * You only need to use one name of the option. The flags can be
+   * You only need to use one name of the flag. The flags can be
    * provided in any order.
    *
    * ## Example
@@ -686,15 +712,15 @@ export interface Flag {
   dependsOn?: NonEmptyArray<string>;
 
   /**
-   * Action performed when this option is provided
+   * Action performed when this flag is provided
    *
    * The command and remaining flags/args will continue to be parsed.
    * Option actions are executed instead of command actions -- the final
-   * option action will be used.
+   * flag action will be used.
    *
-   * This shouldn't be used to slightly change the behavior of an option.
+   * This shouldn't be used to slightly change the behavior of a flag.
    * It also disables checking the minimum number of arguments. The intended
-   * use for option actions is to replicate the behavior of a command,
+   * use for flag actions is to replicate the behavior of a command,
    * like `--help` and `--version`.
    */
   action?: Action;
@@ -713,7 +739,7 @@ export interface Flag {
 }
 
 /**
- * Args are used to provide values to an option or command
+ * Args are used to provide values to a flag or command
  *
  * This is the script name in `deno run script.ts`, or the text in `grep TODO`.
  *
@@ -721,7 +747,7 @@ export interface Flag {
  * They can also be variadic with `isVariadic: boolean`, meaning they take an
  * infinite number of values instead of only one.
  *
- * Variadic option arguments are ended by finding another option.
+ * Variadic flag arguments are ended by finding another flag.
  */
 export interface Arg {
   /** Name of the argument */

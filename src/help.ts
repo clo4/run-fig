@@ -438,6 +438,9 @@ function generateHelpString(
   }
 
   // 📍 Usage
+  // This is an iife because it's pretty complicated to summarize it all into
+  // one string, so it's easier to just do it in a function. When `do` blocks are
+  // implemented, this can be rewritten to use that instead.
   const usage = (() => {
     if (options.noUsage) {
       return null;

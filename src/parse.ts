@@ -1,15 +1,15 @@
-import type { Action, Command, NonEmptyArray, Option } from "./types.ts";
-import { analyze, BaseToken, TokenCommand, TokenOption } from "./analyze.ts";
+import type { Action, Command, Flag, NonEmptyArray } from "./types.ts";
+import { analyze, BaseToken, TokenCommand, TokenFlag } from "./analyze.ts";
 import { isArray, makeArray, setEach } from "./collections.ts";
 import {
   ErrorContext,
-  InvalidOptionArg,
-  MissingRequiredOption,
+  InvalidFlagArg,
+  MissingRequiredFlag,
   ParseError,
   TooFewArguments,
-  TooFewOptionArguments,
+  TooFewFlagArguments,
   TooManyArguments,
-  UnknownOption,
+  UnknownFlag,
 } from "./errors.ts";
 import { usage as builtinUsageAction } from "./help.ts";
 
@@ -22,16 +22,16 @@ export function assert(expr: unknown, msg = ""): asserts expr {
 export interface ParseResult {
   args: string[];
   argSeparatorIndex: number;
-  options: Map<string, string[]>;
+  flags: Map<string, string[]>;
   path: NonEmptyArray<Command>;
   actions: Action[];
-  optionActions: Action[];
+  flagActions: Action[];
 }
 
 const enum State {
   ParseArgs,
-  ParseOptionArgs,
-  ParseOptionArgRequireSeparator,
+  ParseFlagArgs,
+  ParseFlagArgRequireSeparator,
 }
 
 /** Get the minimum number of values that can satisfy the args array */
@@ -91,7 +91,7 @@ function get<K, V>(map: Map<K, V>, key: K | NonEmptyArray<K>): V | undefined {
 export function parse(input: readonly string[], spec: Command): ParseResult {
   const path: [Command, ...Command[]] = [spec];
   const actions: Action[] = [];
-  const optionActions: Action[] = [];
+  const flagActions: Action[] = [];
 
   if (spec.action) {
     actions.push(spec.action);
@@ -109,40 +109,40 @@ export function parse(input: readonly string[], spec: Command): ParseResult {
   }
 
   const foundArgs: string[] = [];
-  const foundOptions: Map<string, string[]> = new Map();
+  const foundFlags: Map<string, string[]> = new Map();
 
   // These have to be type assertions otherwise TS will incorrectly
   // infer that the variables are never reassigned
   let state = State.ParseArgs as State;
-  let optionArgs = null as string[] | null;
-  let optionArgsMin = 0;
+  let flagArgs = null as string[] | null;
+  let flagArgsMin = 0;
   let optionArgsMax = 0;
   let requiredSeparator = false as string | boolean;
   let argSeparatorIndex = -1;
 
   // Each item in this set must be provided
-  const dependsOnOptions = [] as Option[];
+  const dependsOnFlags = [] as Flag[];
   // Each item in this set cannot be provided
-  const exclusiveOnOptions = [] as Option[];
+  const exclusiveOnFlags = [] as Flag[];
 
-  const parseOption = (token: TokenOption<Option>) => {
+  const parseFlag = (token: TokenFlag<Flag>) => {
     const option = token.option;
 
     // Don't allow repeating non-repeatable options
-    if (!option.isRepeatable && has(foundOptions, option.name)) {
+    if (!option.isRepeatable && has(foundFlags, option.name)) {
       throw new ParseError(ctx(), "Repeated option");
     }
 
     if (option.exclusiveOn) {
-      exclusiveOnOptions.push(option);
+      exclusiveOnFlags.push(option);
     }
 
     if (option.dependsOn) {
-      dependsOnOptions.push(option);
+      dependsOnFlags.push(option);
     }
 
     if (option.action) {
-      optionActions.push(option.action);
+      flagActions.push(option.action);
     }
 
     // Repeatable options are treated differently so we *have* to branch on this.
@@ -150,10 +150,10 @@ export function parse(input: readonly string[], spec: Command): ParseResult {
       const maxRepeat = option.isRepeatable === true
         ? Infinity
         : option.isRepeatable;
-      let arr = get(foundOptions, option.name);
+      let arr = get(foundFlags, option.name);
       if (!arr) {
         arr = [];
-        setEach(foundOptions, option.name, arr);
+        setEach(foundFlags, option.name, arr);
       }
       if (arr.length >= maxRepeat) {
         throw new ParseError(ctx(), "Too many repetitions");
@@ -163,23 +163,23 @@ export function parse(input: readonly string[], spec: Command): ParseResult {
     }
 
     const args = makeArray(option.args);
-    optionArgsMin = getMinArgs(args);
+    flagArgsMin = getMinArgs(args);
     optionArgsMax = getMaxArgs(args);
 
-    optionArgs = [];
-    setEach(foundOptions, option.name, optionArgs);
+    flagArgs = [];
+    setEach(foundFlags, option.name, flagArgs);
 
     if (optionArgsMax === 0) {
-      optionArgs = null;
+      flagArgs = null;
       state = State.ParseArgs;
       return;
     }
 
     if (option.requiresSeparator) {
-      state = State.ParseOptionArgRequireSeparator;
+      state = State.ParseFlagArgRequireSeparator;
       requiredSeparator = option.requiresSeparator;
     } else {
-      state = State.ParseOptionArgs;
+      state = State.ParseFlagArgs;
     }
     return;
   };
@@ -222,7 +222,7 @@ export function parse(input: readonly string[], spec: Command): ParseResult {
 
   const ctx = () => ({ path } as ErrorContext);
 
-  const { finalState, tokens } = analyze<Command, Option>(input, spec);
+  const { finalState, tokens } = analyze<Command, Flag>(input, spec);
 
   for (const token of tokens) {
     switch (state) {
@@ -236,15 +236,15 @@ export function parse(input: readonly string[], spec: Command): ParseResult {
             parseArg(token);
             break;
           }
-          case "option": {
-            parseOption(token);
+          case "flag": {
+            parseFlag(token);
             break;
           }
-          case "unknown-option": {
-            throw new UnknownOption(token, ctx());
+          case "unknown-flag": {
+            throw new UnknownFlag(token, ctx());
           }
-          case "option-arg": {
-            throw new InvalidOptionArg(token, ctx());
+          case "flag-arg": {
+            throw new InvalidFlagArg(token, ctx());
           }
           case "arg-separator": {
             parseArgSeparator();
@@ -256,46 +256,46 @@ export function parse(input: readonly string[], spec: Command): ParseResult {
         }
         break;
       }
-      case State.ParseOptionArgs: {
+      case State.ParseFlagArgs: {
         assert(
-          Array.isArray(optionArgs),
+          Array.isArray(flagArgs),
           "Invalid state, must have an array to store option arguments",
         );
         switch (token.kind) {
-          case "option-arg":
+          case "flag-arg":
           case "arg": {
-            if (optionArgs.length < optionArgsMax) {
-              optionArgs.push(token.literal);
+            if (flagArgs.length < optionArgsMax) {
+              flagArgs.push(token.literal);
             } else {
-              optionArgs = null;
+              flagArgs = null;
               state = State.ParseArgs;
               parseArg(token);
             }
             break;
           }
-          case "option": {
-            if (optionArgs.length < optionArgsMin) {
-              throw new TooFewOptionArguments(
-                optionArgsMin,
+          case "flag": {
+            if (flagArgs.length < flagArgsMin) {
+              throw new TooFewFlagArguments(
+                flagArgsMin,
                 optionArgsMax,
                 ctx(),
               );
             }
-            parseOption(token);
+            parseFlag(token);
             break;
           }
-          case "unknown-option": {
-            if (optionArgs.length < optionArgsMax) {
-              optionArgs.push(token.literal);
+          case "unknown-flag": {
+            if (flagArgs.length < optionArgsMax) {
+              flagArgs.push(token.literal);
             } else {
-              throw new UnknownOption(token, ctx());
+              throw new UnknownFlag(token, ctx());
             }
             break;
           }
           case "arg-separator": {
-            if (optionArgs.length < optionArgsMin) {
-              throw new TooFewOptionArguments(
-                optionArgsMin,
+            if (flagArgs.length < flagArgsMin) {
+              throw new TooFewFlagArguments(
+                flagArgsMin,
                 optionArgsMax,
                 ctx(),
               );
@@ -314,14 +314,14 @@ export function parse(input: readonly string[], spec: Command): ParseResult {
         }
         break;
       }
-      case State.ParseOptionArgRequireSeparator: {
+      case State.ParseFlagArgRequireSeparator: {
         assert(
-          Array.isArray(optionArgs),
+          Array.isArray(flagArgs),
           "Invalid state, must have an array to store option arguments",
         );
         assert(requiredSeparator, "Invalid state, a separator must be set");
         switch (token.kind) {
-          case "option-arg": {
+          case "flag-arg": {
             if (
               typeof requiredSeparator === "string" &&
               token.separator !== requiredSeparator
@@ -333,44 +333,44 @@ export function parse(input: readonly string[], spec: Command): ParseResult {
             }
             // If this is true, we know thanks to the test suite that
             // the option takes a minimum of one argument
-            optionArgs.push(token.literal);
+            flagArgs.push(token.literal);
             state = State.ParseArgs;
             break;
           }
           case "arg": {
-            if (optionArgsMin > 0) {
-              throw new TooFewOptionArguments(
-                optionArgsMin,
+            if (flagArgsMin > 0) {
+              throw new TooFewFlagArguments(
+                flagArgsMin,
                 optionArgsMax,
                 ctx(),
               );
             }
-            optionArgs = null;
+            flagArgs = null;
             state = State.ParseArgs;
             parseArg(token);
             break;
           }
-          case "option": {
-            if (optionArgsMin > 0) {
-              throw new TooFewOptionArguments(
-                optionArgsMin,
+          case "flag": {
+            if (flagArgsMin > 0) {
+              throw new TooFewFlagArguments(
+                flagArgsMin,
                 optionArgsMax,
                 ctx(),
               );
             }
-            parseOption(token);
+            parseFlag(token);
             break;
           }
-          case "unknown-option": {
-            throw new UnknownOption(token, ctx());
+          case "unknown-flag": {
+            throw new UnknownFlag(token, ctx());
           }
           case "arg-separator": {
             throw new ParseError(ctx(), "Unexpected token");
           }
           case "command": {
-            if (optionArgsMin > 0) {
-              throw new TooFewOptionArguments(
-                optionArgsMin,
+            if (flagArgsMin > 0) {
+              throw new TooFewFlagArguments(
+                flagArgsMin,
                 optionArgsMax,
                 ctx(),
               );
@@ -388,18 +388,18 @@ export function parse(input: readonly string[], spec: Command): ParseResult {
     }
   }
 
-  if (optionActions.length === 0 && foundArgs.length < commandArgsMin) {
+  if (flagActions.length === 0 && foundArgs.length < commandArgsMin) {
     throw new TooFewArguments(commandArgsMin, commandArgsMax, ctx());
   }
-  if (optionArgs && optionArgs.length < optionArgsMin) {
-    throw new TooFewOptionArguments(optionArgsMin, optionArgsMax, ctx());
+  if (flagArgs && flagArgs.length < flagArgsMin) {
+    throw new TooFewFlagArguments(flagArgsMin, optionArgsMax, ctx());
   }
 
-  // Options in the `{depends,exclusive}OnOptions` arrays definitely have the
+  // Flags in the `{depends,exclusive}OnFlags` arrays definitely have the
   // corresponding array, so it's safe to assert non-null in this situation.
-  for (const option of dependsOnOptions) {
+  for (const option of dependsOnFlags) {
     for (const name of option.dependsOn!) {
-      if (!foundOptions.has(name)) {
+      if (!foundFlags.has(name)) {
         throw new ParseError(
           ctx(),
           `${option.name} requires ${name}, add it to fix this error`,
@@ -407,9 +407,9 @@ export function parse(input: readonly string[], spec: Command): ParseResult {
       }
     }
   }
-  for (const option of exclusiveOnOptions) {
+  for (const option of exclusiveOnFlags) {
     for (const name of option.exclusiveOn!) {
-      if (foundOptions.has(name)) {
+      if (foundFlags.has(name)) {
         throw new ParseError(
           ctx(),
           `${option.name} can't be used together with ${name}`,
@@ -417,23 +417,23 @@ export function parse(input: readonly string[], spec: Command): ParseResult {
       }
     }
   }
-  for (const name of finalState.localRequiredOptions.keys()) {
-    if (!foundOptions.has(name)) {
-      throw new MissingRequiredOption(name, ctx());
+  for (const name of finalState.localRequiredFlags.keys()) {
+    if (!foundFlags.has(name)) {
+      throw new MissingRequiredFlag(name, ctx());
     }
   }
-  for (const name of finalState.persistentRequiredOptions.keys()) {
-    if (!foundOptions.has(name)) {
-      throw new MissingRequiredOption(name, ctx());
+  for (const name of finalState.persistentRequiredFlags.keys()) {
+    if (!foundFlags.has(name)) {
+      throw new MissingRequiredFlag(name, ctx());
     }
   }
 
   return {
     path,
     actions,
-    optionActions,
+    flagActions,
     argSeparatorIndex,
     args: foundArgs,
-    options: foundOptions,
+    flags: foundFlags,
   };
 }

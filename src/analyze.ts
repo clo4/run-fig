@@ -1,16 +1,16 @@
 import { makeArray, setEach } from "./collections.ts";
 
-interface MinOption {
+interface MinFlag {
   name: string | readonly string[];
   args?: unknown;
   isPersistent?: boolean;
   isRequired?: boolean;
 }
 
-interface MinCommand<Option extends MinOption> {
+interface MinCommand<Flag extends MinFlag> {
   name: string | readonly string[];
   args?: unknown;
-  options?: readonly Option[];
+  options?: readonly Flag[];
   subcommands?: readonly this[];
   parserDirectives?: {
     optionArgSeparators?: string | readonly string[];
@@ -32,9 +32,9 @@ export type BaseToken = {
 };
 
 /** Something that looks like an option but isn't one */
-export type TokenUnknownOption = BaseToken & {
-  kind: "unknown-option";
-  validOptions: string[];
+export type TokenUnknownFlag = BaseToken & {
+  kind: "unknown-flag";
+  validFlags: string[];
 };
 
 /** A value that belongs to either an option or the current command */
@@ -48,8 +48,8 @@ export type TokenArgSeparator = BaseToken & {
 };
 
 /** Some text that is guaranteed to belong to the preceding option (eg. -I%, --config=file.json) */
-export type TokenOptionArg = BaseToken & {
-  kind: "option-arg";
+export type TokenFlagArg = BaseToken & {
+  kind: "flag-arg";
   option: string;
   separator: string;
 };
@@ -61,29 +61,29 @@ export type TokenCommand<Command> = BaseToken & {
 };
 
 /** An option */
-export type TokenOption<Option> = BaseToken & {
-  kind: "option";
-  option: Option;
+export type TokenFlag<Flag> = BaseToken & {
+  kind: "flag";
+  option: Flag;
 };
 
 /** Any kind of token */
-export type Token<Command, Option> =
+export type Token<Command, Flag> =
   | TokenArg
   | TokenArgSeparator
   | TokenCommand<Command>
-  | TokenOption<Option>
-  | TokenUnknownOption
-  | TokenOptionArg;
+  | TokenFlag<Flag>
+  | TokenUnknownFlag
+  | TokenFlagArg;
 
-export const $optionArg = (
+export const $flagArg = (
   index: number,
   start: number,
   end: number,
   literal: string,
   option: string,
   separator: string,
-): TokenOptionArg => ({
-  kind: "option-arg",
+): TokenFlagArg => ({
+  kind: "flag-arg",
   index,
   literal,
   start,
@@ -92,19 +92,19 @@ export const $optionArg = (
   separator,
 });
 
-export const $unknownOption = (
+export const $unknownFlag = (
   index: number,
   start: number,
   end: number,
   literal: string,
-  validOptions: string[],
-): TokenUnknownOption => ({
-  kind: "unknown-option",
+  validFlags: string[],
+): TokenUnknownFlag => ({
+  kind: "unknown-flag",
   index,
   start,
   end,
   literal,
-  validOptions,
+  validFlags,
 });
 
 export const $arg = (
@@ -134,8 +134,8 @@ export const $argSeparator = (
 });
 
 export const $command = <
-  Command extends MinCommand<Option>,
-  Option extends MinOption,
+  Command extends MinCommand<Flag>,
+  Flag extends MinFlag,
 >(
   index: number,
   start: number,
@@ -153,15 +153,15 @@ export const $command = <
   };
 };
 
-export const $option = <Option extends MinOption>(
+export const $flag = <Flag extends MinFlag>(
   index: number,
   start: number,
   end: number,
   literal: string,
-  option: Option,
-): TokenOption<Option> => {
+  option: Flag,
+): TokenFlag<Flag> => {
   return {
-    kind: "option",
+    kind: "flag",
     index,
     start,
     end,
@@ -170,17 +170,17 @@ export const $option = <Option extends MinOption>(
   };
 };
 
-export interface AnalyzeResult<Command, Option> {
+export interface AnalyzeResult<Command, Flag> {
   /** The state after the final token has been processed */
   finalState: {
-    localOptions: Map<string, Option>;
-    persistentOptions: Map<string, Option>;
-    localRequiredOptions: Map<string, Option>;
-    persistentRequiredOptions: Map<string, Option>;
+    localFlags: Map<string, Flag>;
+    persistentFlags: Map<string, Flag>;
+    localRequiredFlags: Map<string, Flag>;
+    persistentRequiredFlags: Map<string, Flag>;
   };
 
   /** The list of tokens and their data */
-  tokens: Token<Command, Option>[];
+  tokens: Token<Command, Flag>[];
 }
 
 /**
@@ -188,40 +188,43 @@ export interface AnalyzeResult<Command, Option> {
  *
  * This generator uses the options and subcommands to categorize the
  * input tokens. It will not track or reject arguments - tokens that
- * don't match an option or command are yielded as arguments.
+ * don't match an option or command are yielded as arguments. This
+ * makes the tokenizing step infallible. Reconciling the arguments is
+ * left to the parser.
  */
 export function analyze<
-  Command extends MinCommand<Option>,
-  Option extends MinOption,
->(input: readonly string[], spec: Command): AnalyzeResult<Command, Option> {
-  const tokens = [] as Token<Command, Option>[];
+  Command extends MinCommand<Flag>,
+  Flag extends MinFlag,
+>(input: readonly string[], spec: Command): AnalyzeResult<Command, Flag> {
+  const tokens = [] as Token<Command, Flag>[];
 
+  // Quick branch for if there was no input
   if (input.length === 0) {
-    const localOptions = new Map();
-    const localRequiredOptions = new Map();
-    const persistentOptions = new Map();
-    const persistentRequiredOptions = new Map();
+    const localFlags = new Map();
+    const localRequiredFlags = new Map();
+    const persistentFlags = new Map();
+    const persistentRequiredFlags = new Map();
     if (spec.options) {
       for (const option of spec.options) {
         if (option.isPersistent) {
-          setEach(persistentOptions, option.name, option);
+          setEach(persistentFlags, option.name, option);
           if (option.isRequired) {
-            setEach(persistentRequiredOptions, option.name, option);
+            setEach(persistentRequiredFlags, option.name, option);
           }
         } else {
-          setEach(localOptions, option.name, option);
+          setEach(localFlags, option.name, option);
           if (option.isRequired) {
-            setEach(localRequiredOptions, option.name, option);
+            setEach(localRequiredFlags, option.name, option);
           }
         }
       }
     }
     return {
       finalState: {
-        localOptions,
-        persistentOptions,
-        localRequiredOptions,
-        persistentRequiredOptions,
+        localFlags,
+        persistentFlags,
+        localRequiredFlags,
+        persistentRequiredFlags,
       },
       tokens,
     };
@@ -231,22 +234,22 @@ export function analyze<
   let localCommands: readonly Command[] | undefined;
 
   // TODO: Check if this would be faster as an array for a Deno-sized spec
-  const localOptions: Map<string, Option> = new Map();
-  const persistentOptions: Map<string, Option> = new Map();
-  const localRequiredOptions: Map<string, Option> = new Map();
-  const persistentRequiredOptions: Map<string, Option> = new Map();
+  const localFlags: Map<string, Flag> = new Map();
+  const persistentFlags: Map<string, Flag> = new Map();
+  const localRequiredFlags: Map<string, Flag> = new Map();
+  const persistentRequiredFlags: Map<string, Flag> = new Map();
   let separators = ["="];
   let hasFoundArg = false;
-  let posixCompliantOptions = true;
+  let posixCompliantFlags = true;
   let subcommandsMatchUniquePrefix = false;
   let optionsMustPrecedeArguments = false;
-  let hasUsedNonPersistentOption = false;
+  let hasUsedNonPersistentFlag = false;
 
-  const getOption = (name: string) =>
-    localOptions.get(name) ?? persistentOptions.get(name) ?? null;
+  const getFlag = (name: string) =>
+    localFlags.get(name) ?? persistentFlags.get(name) ?? null;
 
-  const hasOption = (name: string) =>
-    localOptions.has(name) || persistentOptions.has(name);
+  const hasFlag = (name: string) =>
+    localFlags.has(name) || persistentFlags.has(name);
 
   const getCommand = (name: string) => {
     if (!localCommands) {
@@ -312,14 +315,14 @@ export function analyze<
     if (command.options) {
       for (const option of command.options) {
         if (option.isPersistent) {
-          setEach(persistentOptions, option.name, option);
+          setEach(persistentFlags, option.name, option);
           if (option.isRequired) {
-            setEach(persistentRequiredOptions, option.name, option);
+            setEach(persistentRequiredFlags, option.name, option);
           }
         } else {
-          setEach(localOptions, option.name, option);
+          setEach(localFlags, option.name, option);
           if (option.isRequired) {
-            setEach(localRequiredOptions, option.name, option);
+            setEach(localRequiredFlags, option.name, option);
           }
         }
       }
@@ -342,7 +345,7 @@ export function analyze<
     }
 
     if (typeof directives?.flagsArePosixNoncompliant === "boolean") {
-      posixCompliantOptions = !directives.flagsArePosixNoncompliant;
+      posixCompliantFlags = !directives.flagsArePosixNoncompliant;
     }
   };
 
@@ -369,10 +372,10 @@ export function analyze<
     // A common case is for the first argument to be a command,
     // so we can exit early instead of building the whole map if the
     // argument is a command.
-    if (!hasFoundArg && !hasUsedNonPersistentOption && localCommands) {
+    if (!hasFoundArg && !hasUsedNonPersistentFlag && localCommands) {
       const command = getCommand(token);
       if (command) {
-        localOptions.clear();
+        localFlags.clear();
         updateCurrentCommand(command);
         tokens.push($command(index, 0, token.length, token, command));
         continue tokens;
@@ -382,7 +385,7 @@ export function analyze<
     // 2. Try to parse as an option
     if (!(optionsMustPrecedeArguments && hasFoundArg)) {
       if (
-        posixCompliantOptions &&
+        posixCompliantFlags &&
         token.length > 1 &&
         (token.startsWith("-") || token.startsWith("+")) &&
         !token.startsWith("--")
@@ -394,11 +397,11 @@ export function analyze<
         // - the options exist
         // - the options take args
         // - the first non-leading character isn't an option
-        const dashOption = getOption(leadingChar);
-        if (dashOption?.args && !hasOption(token.slice(0, 2))) {
-          tokens.push($option(index, 0, 1, leadingChar, dashOption));
+        const dashFlag = getFlag(leadingChar);
+        if (dashFlag?.args && !hasFlag(token.slice(0, 2))) {
+          tokens.push($flag(index, 0, 1, leadingChar, dashFlag));
           tokens.push(
-            $optionArg(index, 1, token.length, token.slice(1), leadingChar, ""),
+            $flagArg(index, 1, token.length, token.slice(1), leadingChar, ""),
           );
           continue tokens;
         }
@@ -408,22 +411,22 @@ export function analyze<
         chars:
         for (let char = 1; char < token.length; char++) {
           const optionName = `${leadingChar}${token[char]}`;
-          const option = getOption(optionName);
+          const option = getFlag(optionName);
           if (!option) {
             tokens.push(
-              $unknownOption(index, char, char + 1, optionName, [
-                ...localOptions.keys(),
-                ...persistentOptions.keys(),
+              $unknownFlag(index, char, char + 1, optionName, [
+                ...localFlags.keys(),
+                ...persistentFlags.keys(),
               ]),
             );
             continue chars;
           }
 
-          if (!hasUsedNonPersistentOption && !option.isPersistent) {
-            hasUsedNonPersistentOption = true;
+          if (!hasUsedNonPersistentFlag && !option.isPersistent) {
+            hasUsedNonPersistentFlag = true;
           }
 
-          tokens.push($option(index, char, char + 1, optionName, option));
+          tokens.push($flag(index, char, char + 1, optionName, option));
 
           if (option.args && char < token.length - 1) {
             const remainingChars = token.slice(char + 1);
@@ -432,7 +435,7 @@ export function analyze<
             ) || "";
             const argStartOffset = char + sep.length;
             tokens.push(
-              $optionArg(
+              $flagArg(
                 index,
                 argStartOffset + 1,
                 token.length,
@@ -448,7 +451,7 @@ export function analyze<
       }
 
       if (
-        !posixCompliantOptions ||
+        !posixCompliantFlags ||
         (token.length > 2 && token.startsWith("--"))
       ) {
         // 2.c. Parse as a long option or posix-noncompliant option
@@ -472,13 +475,13 @@ export function analyze<
 
         if (foundSep) {
           const optionName = token.slice(0, foundSepIndex);
-          const option = getOption(optionName);
+          const option = getFlag(optionName);
           if (option) {
-            if (!hasUsedNonPersistentOption && !option.isPersistent) {
-              hasUsedNonPersistentOption = true;
+            if (!hasUsedNonPersistentFlag && !option.isPersistent) {
+              hasUsedNonPersistentFlag = true;
             }
             tokens.push(
-              $option(
+              $flag(
                 index,
                 0,
                 foundSepIndex,
@@ -487,7 +490,7 @@ export function analyze<
               ),
             );
             tokens.push(
-              $optionArg(
+              $flagArg(
                 index,
                 foundSepIndex + foundSep.length,
                 token.length,
@@ -497,18 +500,18 @@ export function analyze<
               ),
             );
             continue tokens;
-          } else if (posixCompliantOptions) {
+          } else if (posixCompliantFlags) {
             // If we're here, we know the option is invalid and we're parsing a
             // posix-compliant option, so that's an "unknown option" instead of arg.
             const optionName = token.slice(0, foundSepIndex);
             tokens.push(
-              $unknownOption(index, 0, foundSepIndex, optionName, [
-                ...localOptions.keys(),
-                ...persistentOptions.keys(),
+              $unknownFlag(index, 0, foundSepIndex, optionName, [
+                ...localFlags.keys(),
+                ...persistentFlags.keys(),
               ]),
             );
             tokens.push(
-              $optionArg(
+              $flagArg(
                 index,
                 foundSepIndex + foundSep.length,
                 token.length,
@@ -521,20 +524,20 @@ export function analyze<
           }
           // Posix noncompliant options should fall through
         } else {
-          const option = getOption(token);
+          const option = getFlag(token);
           if (option) {
-            if (!hasUsedNonPersistentOption && !option.isPersistent) {
-              hasUsedNonPersistentOption = true;
+            if (!hasUsedNonPersistentFlag && !option.isPersistent) {
+              hasUsedNonPersistentFlag = true;
             }
-            tokens.push($option(index, 0, token.length, token, option));
+            tokens.push($flag(index, 0, token.length, token, option));
             continue tokens;
-          } else if (posixCompliantOptions) {
+          } else if (posixCompliantFlags) {
             // If we're here, we know the option is invalid and we're parsing a
             // posix-compliant option, so that's an "unknown option" instead of arg.
             tokens.push(
-              $unknownOption(index, 0, token.length, token, [
-                ...localOptions.keys(),
-                ...persistentOptions.keys(),
+              $unknownFlag(index, 0, token.length, token, [
+                ...localFlags.keys(),
+                ...persistentFlags.keys(),
               ]),
             );
             continue tokens;
@@ -551,10 +554,10 @@ export function analyze<
 
   return {
     finalState: {
-      localOptions,
-      persistentOptions,
-      localRequiredOptions,
-      persistentRequiredOptions,
+      localFlags,
+      persistentFlags,
+      localRequiredFlags,
+      persistentRequiredFlags,
     },
     tokens,
   };
