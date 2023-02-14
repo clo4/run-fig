@@ -26,3 +26,5 @@ export default Fig;
 // You can also import items individually, like the types. Also required for
 // the documentation generator, which doesn't support exported namespaces.
 export * from "./src/mod.ts";
+
+export const version = "0.0.1";
