@@ -241,7 +241,8 @@ export const helpCommand: Command = {
       return 1;
     }
     
-    // This is guaranteed to have at least one element in it
+    // This is guaranteed to have at least one element in it after slicing
+    // because it has already been checked above
     const helpRoot = path.slice(0, -1) as unknown as NonEmptyArray<Command>;
 
     // If there's no command to get help for, get help for the parent
@@ -255,14 +256,14 @@ export const helpCommand: Command = {
       return 0;
     }
 
-    // Looking up the command can fail in two main ways:
+    // Looking up the command can fail in two ways:
     // 1. There are no subcommands
     // 2. There are no subcommands with that name
 
     // Have to check the list of subcommands on the parent command,
     // which is the second-to-last element in the path. The final element
     // is the `help` command itself.
-    const parent = path[path.length - 2];
+    const parent = path[path.length - 2] as Command;
 
     if (!parent.subcommands || parent.subcommands.length === 1) {
       error(
@@ -389,7 +390,7 @@ function generateHelpString(
   // This is a long function because it has to do a lot of work to
   // format the output correctly, but the long version is actually
   // much easier to read and maintain than the shorter one.
-  const command = path[path.length - 1];
+  const command = path[path.length - 1]!;
   const desc = command.description ?? "No description";
 
   // 📍 Subcommands
@@ -397,7 +398,7 @@ function generateHelpString(
 
   // 📍 Options
   const persistentOptions: Flag[] = [];
-  const normalOptions: Flag[] = [];
+  const normalFlags: Flag[] = [];
 
   // Because the options should be displayed in a way that's easy to digest,
   // and because options can also be inherited, there is some more complicated
@@ -410,7 +411,7 @@ function generateHelpString(
     // persistent and normal options, so we can just put them all into
     // the normal options array.
     if (command.flags) {
-      normalOptions.push(...command.flags);
+      normalFlags.push(...command.flags);
     }
   } else {
     // This is either a nested command or a command with visible subcommands,
@@ -438,14 +439,14 @@ function generateHelpString(
         if (option.isPersistent) {
           continue;
         }
-        normalOptions.push(option);
+        normalFlags.push(option);
       }
     }
   }
 
   // 📍 Usage
   // This is an iife because it's pretty complicated to summarize it all into
-  // one string, so it's easier to just do it in a function. When `do` blocks are
+  // one string, so it's easier to just do it in an expression. When `do` blocks are
   // implemented, this can be rewritten to use that instead.
   const usage = (() => {
     if (options.noUsage) {
@@ -453,26 +454,26 @@ function generateHelpString(
     }
     const parts: string[] = [];
 
-    const requiredOptions: Flag[] = [];
-    for (const option of normalOptions) {
-      if (option.isRequired) {
-        requiredOptions.push(option);
+    const requiredFlags: Flag[] = [];
+    for (const flag of normalFlags) {
+      if (flag.isRequired) {
+        requiredFlags.push(flag);
       }
     }
     for (const option of persistentOptions) {
       if (option.isRequired) {
-        requiredOptions.push(option);
+        requiredFlags.push(option);
       }
     }
-    if (requiredOptions.length > 0) {
-      for (const option of requiredOptions) {
-        parts.push(optionToString(option));
+    if (requiredFlags.length > 0) {
+      for (const option of requiredFlags) {
+        parts.push(flagToString(option));
       }
     }
 
     if (
-      normalOptions.length + persistentOptions.length >
-        requiredOptions.length
+      normalFlags.length + persistentOptions.length >
+        requiredFlags.length
     ) {
       parts.push("[flags]");
     }
@@ -492,23 +493,23 @@ function generateHelpString(
 
   const indent = "  ";
   const deepIndent = indent.repeat(2);
-  const minSpaceBetweenColumns = 2;
+  const minSpacesBetweenColumns = 2;
 
-  // People are irrationally afraid of code duplication but if it's not causing a problem
+  // People are irrationally afraid of code duplication. If it's not causing a problem
   // and doesn't make maintaining it harder then it's really not an issue.
   // Basically I'm saying that if you see this and think "hmmm, I should refactor it"
   // then maybe assess your priorities. You're clearly smart, so use that brain power
   // on things that matter!
   let longestOptionName = 0;
-  for (const option of normalOptions) {
-    const names = makeArray1(option.name);
+  for (const flag of normalFlags) {
+    const names = makeArray1(flag.name);
     const longest = Math.max(...names.map((name) => name.length));
     if (longest > longestOptionName) {
       longestOptionName = longest;
     }
   }
-  for (const option of persistentOptions) {
-    const names = makeArray1(option.name);
+  for (const flag of persistentOptions) {
+    const names = makeArray1(flag.name);
     const longest = Math.max(...names.map((name) => name.length));
     if (longest > longestOptionName) {
       longestOptionName = longest;
@@ -548,7 +549,7 @@ function getSections(commands: NonEmptyArray<Command>): HelpSections {
       ? command.flags.filter((option) => !option.isHidden)
       : [];
     options = optionObjects.map((option) => [
-      optionToString(option),
+      flagToString(option),
       option.description ?? defaultDesc,
     ]);
   } else {
@@ -559,7 +560,7 @@ function getSections(commands: NonEmptyArray<Command>): HelpSections {
       .filter((option) => option.isPersistent && !option.isHidden);
 
     persistentOptions = persistentOptionObjects.map((option) => [
-      optionToString(option),
+      flagToString(option),
       option.description ?? defaultDesc,
     ]);
 
@@ -568,7 +569,7 @@ function getSections(commands: NonEmptyArray<Command>): HelpSections {
     );
 
     options = optionObjects.map((option) => [
-      optionToString(option),
+      flagToString(option),
       option.description ?? defaultDesc,
     ]);
   }
@@ -582,7 +583,7 @@ function getSections(commands: NonEmptyArray<Command>): HelpSections {
     ];
     if (required.length) {
       for (const option of required) {
-        parts.push(optionToString(option));
+        parts.push(flagToString(option));
       }
     }
     if (options.length || persistentOptions.length) {
@@ -694,7 +695,7 @@ export function getLongestString(strings: NonEmptyArray<string>): string {
   return longest;
 }
 
-export function optionToString(option: Flag): string {
+export function flagToString(option: Flag): string {
   const name = makeArray1(option.name)
     .sort((a, b) => a.length - b.length)
     .join(", ");

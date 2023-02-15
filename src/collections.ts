@@ -11,6 +11,8 @@ export function isArray<T>(thing: T | readonly T[]): thing is readonly T[] {
  * Convert the value, if any, to an array with 0 or more elements
  *
  * If the input is an array, it will be shallow-cloned to allow mutation.
+ * 
+ * TODO: Rename this to `copyAsArray` or something like that.
  */
 export function makeArray<T>(thing: T | readonly T[] | undefined): T[] {
   if (thing === undefined) return [];
@@ -22,13 +24,10 @@ export function makeArray<T>(thing: T | readonly T[] | undefined): T[] {
 
 /**
  * Convert the value to an array with at least one element
- *
- * If the input is an array, it will be shallow-cloned to allow mutation.
  */
-export function makeArray1<T>(thing: T | NonEmptyArray<T>): [T, ...T[]] {
+export function makeArray1<T>(thing: T | NonEmptyArray<T>): NonEmptyArray<T> {
   if (isArray(thing)) {
-    // We know that this array has at least one element in it
-    return thing.slice() as [T, ...T[]];
+    return thing;
   }
   return [thing];
 }
