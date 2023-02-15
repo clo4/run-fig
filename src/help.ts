@@ -59,7 +59,7 @@ export interface GetHelpOptions {
  *
  * ## Example
  * ```ts
- * export const spec: CLI.Spec = {
+ * export const spec: CLI.Command = {
  *   name: "fig",
  *   options: [
  *     { name: "--verbose" },
@@ -114,7 +114,7 @@ export function getHelp(
  *
  * ## Example
  * ```ts
- * export const spec: CLI.Spec = {
+ * export const spec: CLI.Command = {
  *   name: "git",
  *   subcommands: [
  *     { name: "commit" },
@@ -217,7 +217,7 @@ export const usage: Action = ({ path, args: [command], error, help }) => {
  *
  * ## Example
  * ```ts
- * const spec: CLI.Spec = {
+ * const spec: CLI.Command = {
  *   name: "deno",
  *   subcommands: [
  *     { name: "repl" },
@@ -235,6 +235,12 @@ export const helpCommand: Command = {
     isOptional: true,
   },
   action({ path, args: [commandName], error, help }) {
+    // If the help command is, for some reason, the root command, fail
+    if (path.length === 1) {
+      error("`help` command cannot be run as the root command")
+      return 1;
+    }
+    
     // This is guaranteed to have at least one element in it
     const helpRoot = path.slice(0, -1) as unknown as NonEmptyArray<Command>;
 
@@ -325,7 +331,7 @@ export const helpCommand: Command = {
  *
  * ## Example
  * ```ts
- * const spec: CLI.Spec = {
+ * const spec: CLI.Command = {
  *   name: "fish",
  *   options: [
  *     CLI.help,

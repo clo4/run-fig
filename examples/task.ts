@@ -6,7 +6,7 @@ const getTasks = (): string[] =>
 const setTasks = (tasks: string[]) =>
   localStorage.setItem("tasks", JSON.stringify(tasks));
 
-const spec: CLI.Spec = {
+const spec: CLI.Command = {
   name: "task",
   description: "An extremely simple to-do list CLI",
   options: [CLI.help],

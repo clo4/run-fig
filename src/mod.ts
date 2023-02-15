@@ -5,7 +5,7 @@ export type {
   Command,
   CommandParserDirectives,
   Flag,
-  FlagArgs,
+  FlagValues,
   NonEmptyArray,
   SingleOrArray,
   SingleOrArrayOrEmpty,

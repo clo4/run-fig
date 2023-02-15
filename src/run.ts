@@ -31,7 +31,7 @@ export function printError(...strings: unknown[]): void {
  *
  * ## Example
  * ```typescript
- * const spec: CLI.Spec = { name: "example" };
+ * const spec: CLI.Command = { name: "example" };
  * const code = await CLI.execute(spec, Deno.args);
  * console.log("Finished");
  * Deno.exit(code);
@@ -127,13 +127,13 @@ export async function execute(
  *
  * ## Example
  * ```ts
- * const spec: CLI.Spec = { name: "example" };
+ * const spec: CLI.Command = { name: "example" };
  * CLI.run(spec);
  * ```
  *
  * ## Example using a custom argument array
  * ```ts
- * const spec: CLI.Spec = { name: "example", args: {} };
+ * const spec: CLI.Command = { name: "example", args: {} };
  * CLI.run(spec, { args: ["first argument"] });
  * ```
  */

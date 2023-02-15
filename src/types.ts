@@ -37,7 +37,7 @@ export type SingleOrArrayOrEmpty<T> = T | [] | readonly [T, T, ...T[]];
  *
  * ## Example
  * ```ts
- * export const spec: CLI.Spec = {
+ * export const spec: CLI.Command = {
  *   name: "rm",
  *   args: { name: "path", isVariadic: boolean },
  *   flags: [
@@ -71,7 +71,7 @@ export interface Action {
 }
 
 /** Use the current flags */
-export interface FlagArgs {
+export interface FlagValues {
   /** Escape hatch: the actual map of flag names to values */
   readonly flags: Map<string, string[]>;
 
@@ -86,7 +86,7 @@ export interface FlagArgs {
    *
    * ## Example
    * ```ts
-   * const spec: CLI.Spec = {
+   * const spec: CLI.Command = {
    *   name: "deno",
    *   flags: [{
    *     name: "--allow-read",
@@ -118,7 +118,7 @@ export interface ActionInit {
    * This is not a `Map`, but the underlying map can be accessed with the
    * `flags` property.
    */
-  flags: FlagArgs;
+  flags: FlagValues;
 
   /**
    * Arguments found for the command
@@ -129,7 +129,7 @@ export interface ActionInit {
    *
    * ## Example Destructuring with a variadic argument last
    * ```ts
-   * const spec: CLI.Spec = {
+   * const spec: CLI.Command = {
    *   name: "find-text",
    *   args: [
    *     { name: "text" },
@@ -143,7 +143,7 @@ export interface ActionInit {
    *
    * ## Example Using a variadic argument first
    * ```ts
-   * const spec: CLI.Spec = {
+   * const spec: CLI.Command = {
    *   name: "mv",
    *   args: [
    *     { name: "source", isVariadic: boolean },
@@ -163,9 +163,6 @@ export interface ActionInit {
   /**
    * Array of commands used leading up to the action invocation
    *
-   * There's always at least one item in the array. The first (0th)
-   * item is always the root command, the `CLI.Spec`.
-   *
    * This is useful to perform introspection.
    */
   path: NonEmptyArray<Command>;
@@ -177,7 +174,7 @@ export interface ActionInit {
    *
    * ## Example Using two variadic arguments
    * ```ts
-   * const spec: CLI.Spec = {
+   * const spec: CLI.Command = {
    *   name: "example",
    *   args: [
    *     { name: "one", isVariadic: boolean },
@@ -213,7 +210,7 @@ export interface ActionInit {
    *
    * ## Example
    * ```
-   * const spec: CLI.Spec = {
+   * const spec: CLI.Command = {
    *   name: "example",
    *   requiresSubcommand: boolean,
    *   action({ help }) {
@@ -253,40 +250,6 @@ export interface ActionInit {
 }
 
 /**
- * A top-level command. This is the entrypoint to your CLI.
- *
- * This is identical to a Command, except the name must be a single string
- * instead of an array of strings.
- *
- * Specs can have infinitely-nested subcommands. If a command doesn't define
- * an action, it inherits the action from its parent. If no actions are defined,
- * running the CLI will return a status code of 1.
- *
- * ## Example
- * ```ts
- * export const spec: CLI.Spec = {
- *   name: "rm",
- *   args: { name: "path", isVariadic: boolean },
- *   flags: [
- *     { name: "-r", description: "Recursive" },
- *     { name: "-f", description: "Force" },
- *   ],
- *   action({ flags, args }) {
- *     const force = flags.has("-f");
- *     const recursive = flags.has("-r");
- *     for (const path of args) {
- *       // ...
- *     }
- *   },
- * };
- * ```
- */
-export interface Spec extends Omit<Command, "name"> {
-  /** The name of the CLI */
-  name?: string;
-}
-
-/**
  * Parser directives for subcommands. These are flags defined on the command
  * that control how the parser works, without having to touch the parser itself.
  */
@@ -313,7 +276,11 @@ export interface CommandParserDirectives {
   flagsMustPrecedeArguments?: boolean;
 
   /**
-   * The separators that can be used for a flag argument
+   * The separators that can be used for a flag argument, such as `=` or `:`.
+   * By default (unless inherited from a parent command), this is `=`.
+   *
+   * Customizing this is useful for flags that could use `:` as a separator, such
+   * as `deno run --allow-net:google.com` (this is just an example)
    *
    * To disable flag arg separators, set this value to an empty array.
    *
@@ -344,7 +311,7 @@ export interface CommandParserDirectives {
  *
  * ## Example modelling the `deno run` command
  * ```ts
- * export const spec: CLI.Spec = {
+ * export const spec: CLI.Command = {
  *   name: "deno",
  *   flags: [
  *     { name: "--unstable", isPersistent: boolean },
@@ -385,7 +352,7 @@ export interface Command {
    *
    * ## Example
    * ```ts
-   * const spec: CLI.Spec = {
+   * CLI.run({
    *   name: "deno",
    *   description: `
    *     A modern JavaScript and TypeScript runtime
@@ -399,7 +366,7 @@ export interface Command {
    *       deno
    *   `,
    *   // ...
-   * }
+   * });
    * ```
    */
   description?: string;
@@ -423,7 +390,7 @@ export interface Command {
    * using the `flags` property.
    *
    * ```ts
-   * const spec: CLI.Spec = {
+   * const spec: CLI.Command = {
    *   name: "deno",
    *   subcommands: [{
    *     name: "run",
@@ -494,7 +461,7 @@ export interface Command {
    *
    * ## Example
    * ```ts
-   * const spec: CLI.Spec = {
+   * const spec: CLI.Command = {
    *   name: "sprint",
    *   description: "Execute a command",
    *   args: [
@@ -559,7 +526,7 @@ export interface Command {
  *
  * ## Example
  * ```ts
- * const spec: CLI.Spec = {
+ * const spec: CLI.Command = {
  *   name: "sort",
  *   flags: [
  *     { name: "-s", description: "Stable sort" },
@@ -606,7 +573,7 @@ export interface Flag {
    */
   args?: SingleOrArray<Arg>;
 
-  /** Allow this flag to be used for all descendent subcommands */
+  /** Allow this flag to be used by all descendent commands */
   isPersistent?: boolean;
 
   /** Hide this flag from any place it may be displayed */
@@ -631,7 +598,7 @@ export interface Flag {
    * ## Example
    * ```ts
    * // example -vvv
-   * const spec: CLI.Spec = {
+   * const spec: CLI.Command = {
    *   name: "example",
    *   flags: [{
    *     name: "-v",
@@ -677,7 +644,7 @@ export interface Flag {
    * // Succeeds: example -x
    * // Fails:    example -ax
    * // Fails:    example -xa
-   * const spec: CLI.Spec = {
+   * const spec: CLI.Command = {
    *   name: "example",
    *   flags: [
    *     { name: ["-a", "--abc"] },
@@ -700,7 +667,7 @@ export interface Flag {
    * // Succeeds: example -ax
    * // Succeeds: example -xa
    * // Fails:    example -x
-   * const spec: CLI.Spec = {
+   * const spec: CLI.Command = {
    *   name: "example",
    *   flags: [
    *     { name: ["-a", "--abc"] },
