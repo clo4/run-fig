@@ -12,6 +12,7 @@ export type {
   Spec,
   Subcommand,
   Suggestion,
+  Trigger,
 } from "./types.ts";
 export { run } from "./run.ts";
 export { help, helpCommand } from "./help.ts";
