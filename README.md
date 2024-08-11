@@ -1,3 +1,14 @@
+# Archiving notice
+
+I've chosen to archive this project. Writing a CLI in an interpreted language is
+a bad choice. Even though it lets you prototype things really quickly, it will
+hinder you in the long term.
+
+You can still use this for writing interfaces for quick scripts, but there isn't
+much reason to use this over something like Python's Click module for your scripts
+or Rust's Clap crate for stuff that you want to publish. If you just want to use
+TypeScript, use Cliffy which will also give you good completions!
+
 # Run a Fig spec as a CLI
 
 An experimental JavaScript library (Deno) for building fast command-line tools.
